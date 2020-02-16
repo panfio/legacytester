@@ -1,15 +1,20 @@
 package ru.panfio.legacytester;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+
+import static ru.panfio.legacytester.util.ReflectionUtils.getMethodParameters;
 
 /**
  * Container for storing method invocation data.
  */
 public class MethodCapture {
-    public enum Type { DEPENDENCY, AFFECT, TEST }
+    public enum Type {DEPENDENCY, AFFECT, TEST}
+
     private final Method method;
     private final Type type;
     private final Object[] arguments;
@@ -26,6 +31,10 @@ public class MethodCapture {
 
     public Method getMethod() {
         return method;
+    }
+
+    public String methodName() {
+        return method.getName();
     }
 
     public Type getType() {
@@ -48,6 +57,7 @@ public class MethodCapture {
         this.fieldName = fieldName;
         return this;
     }
+
 
     public static List<MethodCapture> dependenciesInvocations(List<MethodCapture> capturedData) {
         return capturedData.stream()

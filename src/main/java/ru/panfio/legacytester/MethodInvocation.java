@@ -29,6 +29,18 @@ public class MethodInvocation {
         return method;
     }
 
+    public String methodName() {
+        return method.getName();
+    }
+
+    public Object getArgument(String argumentName) {
+        return arguments.get(argumentName);
+    }
+
+    public String argumentTypeName(String argumentName) {
+        return arguments.get(argumentName).get(0).getClass().getTypeName();
+    }
+
     public String getFieldName() {
         return fieldName;
     }

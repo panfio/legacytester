@@ -47,29 +47,11 @@ public class LegacyTester {
      * @param params input parameters
      */
     public void test(Object[] params) {
-        Method testMethod = getTestableMethod();
-        if (testMethod == null) {
-            System.out.println("Please annotate testable method with @Testee");
-            return;
-        }
-        List<MethodCapture> capturedData = collectCapturedData();
-        MethodCapture testableMethodCapture = new MethodCapture(testMethod, MethodCapture.Type.TEST, params, null);
-        TestConstructor constructor = new MockTestConstructor(testClass, capturedData, testableMethodCapture);
-        String testText = constructor.construct();
-        printGeneratedTest(testText);
+        generateTest(null, params);
     }
 
     public void test(Object result, Object[] params) {
-        Method testMethod = getTestableMethod();
-        if (testMethod == null) {
-            System.out.println("Please annotate testable method with @Testee");
-            return;
-        }
-        List<MethodCapture> capturedData = collectCapturedData();
-        MethodCapture testableMethodCapture = new MethodCapture(testMethod, MethodCapture.Type.TEST, params, result);
-        TestConstructor constructor = new MockTestConstructor(testClass, capturedData, testableMethodCapture);
-        String testText = constructor.construct();
-        printGeneratedTest(testText);
+        generateTest(result, params);
     }
 
     /**
@@ -108,8 +90,9 @@ public class LegacyTester {
             System.out.println("Please annotate testable method with @Testee");
             return;
         }
+        List<MethodCapture> capturedData = collectCapturedData();
         MethodCapture testableMethodCapture = new MethodCapture(testMethod, MethodCapture.Type.TEST, params, result);
-        TestConstructor constructor = new MockTestConstructor(testClass, new ArrayList<>(), testableMethodCapture);
+        TestConstructor constructor = new MockTestConstructor(testClass, capturedData, testableMethodCapture);
         String testText = constructor.construct();
         printGeneratedTest(testText);
     }
@@ -146,11 +129,11 @@ public class LegacyTester {
 
     private void printGeneratedTest(String test) {
         String header =
-                "//================================================================//\n" +
-                "//======================== GENERATED TEST ========================//\n" +
-                "//================================================================//\n";
+                        "//================================================================//\n" +
+                        "//======================== GENERATED TEST ========================//\n" +
+                        "//================================================================//\n";
         String footer =
-                "//////////////////////////////// END ///////////////////////////////\n";
+                        "//////////////////////////////// END ///////////////////////////////\n";
         System.out.println(header + test + "\n" + footer);
     }
 
@@ -178,16 +161,16 @@ public class LegacyTester {
      *
      * @param target      proxy target .class
      * @param handler     invocation handler LegacyTesterProxy
-     * @param otherIfaces another interfaces for implementation
+     * @param otherInterfaces another interfaces for implementation
      * @param <T>
      * @return
      */
     @SuppressWarnings("unchecked")
-    public <T> T createFieldProxy(Class<? extends T> target, InvocationHandler handler, Class<?>... otherIfaces) {
+    public <T> T createFieldProxy(Class<? extends T> target, InvocationHandler handler, Class<?>... otherInterfaces) {
         FieldInvocationHandler invocationHandler = (FieldInvocationHandler) handler;
         handlers.put(invocationHandler.getFieldName(), invocationHandler);
         Class<?>[] allInterfaces =
-                Stream.concat(Stream.of(target), Stream.of(otherIfaces))
+                Stream.concat(Stream.of(target), Stream.of(otherInterfaces))
                         .distinct()
                         .toArray(Class<?>[]::new);
         return (T) Proxy.newProxyInstance(target.getClassLoader(), allInterfaces, handler);
@@ -195,6 +178,7 @@ public class LegacyTester {
 
     /**
      * Creates a CGLib proxy instance for the test class.
+     *
      * @param bean   target bean
      * @param tester LegacyTester object
      * @return proxy instance
