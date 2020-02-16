@@ -7,10 +7,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static ru.panfio.legacytester.util.ReflectionUtils.*;
@@ -61,8 +60,34 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
                 .toString();
     }
 
+    private String mockCreation(String typeName, String fieldName, String fieldVariable) {
+        return bodySpace + typeName + " " + fieldName + " = " + MOCKITO_CLASS + ".mock(" + typeName + ".class);\n" +
+                bodySpace + "Field " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
+                bodySpace + fieldVariable + ".setAccessible(true);\n" +
+                bodySpace + fieldVariable + ".set(testClass, " + fieldName + ");\n";
+    }
+
+    private String mockInvocation(String fieldMock, String resultName, String methodName, String parametersArguments) {
+        return bodySpace + MOCKITO_CLASS + ".when(" + fieldMock + "." + methodName + "(" + parametersArguments + ")).thenReturn(" + resultName + ");\n";
+    }
+
+    private String createDependencyMocks(Class testClass) {
+        StringBuilder mocks = new StringBuilder();
+        for (Field field : getClassFields(testClass)) {
+            final String typeName = field.getType().getTypeName();
+            if (Modifier.isStatic(field.getModifiers()) || "ru.panfio.legacytester.LegacyTester".equals(typeName)) {
+                continue;
+            }
+
+            final String fieldName = field.getName();
+            String fieldVariable = fieldName + MOCK_FIELD_VARIABLE_SUFFIX;
+            mocks.append(mockCreation(typeName, fieldName, fieldVariable));
+        }
+        return mocks.toString();
+    }
+
     private String generateMockDependencyInvocation() {
-        List<MethodCapture> dependenciesInvocations = getDependenciesInvocations();
+        List<MethodCapture> dependenciesInvocations = MethodCapture.dependenciesInvocations(capturedData);
         StringBuilder mocksInvocations = new StringBuilder();
         int counter = 0;
         for (MethodCapture capture : dependenciesInvocations) {
@@ -85,7 +110,17 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
         String fieldMock = capture.getFieldName();
         final String methodName = method.getName();
         String parametersArguments = generateCaptorPassedArgumentNames(method, counter);
-        return bodySpace + MOCKITO_CLASS + ".when(" + fieldMock + "." + methodName + "(" + parametersArguments +")).thenReturn(" + resultName + ");\n";
+        return mockInvocation(fieldMock, resultName, methodName, parametersArguments);
+    }
+
+    protected String generateCaptorPassedArgumentNames(Method method, int counter) {
+        StringBuilder passedArguments = new StringBuilder();
+        for (Parameter parameter : getMethodParameters(method)) {
+            final String parameterName = parameter.getName() + counter + MOCK_PARAMETER_VARIABLE_SUFFIX;
+            passedArguments.append(parameterName).append(",");
+        }
+        String params = passedArguments.toString();
+        return "".equals(params) ? "" : params.substring(0, params.length() - 1);
     }
 
     protected String generateCaptorPassedArgumentSerialization(MethodCapture methodCapture, int counter) {
@@ -96,195 +131,90 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
             Parameter parameter = methodParameters.get(index);
             final String type = parameter.getParameterizedType().getTypeName();
             final String parameterName = parameter.getName() + counter + MOCK_PARAMETER_VARIABLE_SUFFIX;
+
             passedArguments.append(generateObjectSerialization(arguments[index], parameterName, type));
         }
         return passedArguments.toString();
     }
 
-    protected String generateCaptorPassedArgumentNames(Method method, int counter) {
-        List<Parameter> methodParameters = getMethodParameters(method);
-        StringBuilder passedArguments = new StringBuilder();
-        for (Parameter parameter : methodParameters) {
-            final String parameterName = parameter.getName() + counter + MOCK_PARAMETER_VARIABLE_SUFFIX;
-            passedArguments.append(parameterName).append(",");
-        }
-        String params = passedArguments.toString();
-        return "".equals(params) ? "" : params.substring(0, params.length() - 1);
-    }
-
     private String generateMockDependencyInvocationChecks() {
-        List<MethodCapture> affected = getAffectedDependenciesInvocations();
-        List<MethodInvocation> methodInvocations = collectMethodInvocations(affected);
-        StringBuilder affectedInvocations = new StringBuilder();
-        for (MethodInvocation methodInvocation : methodInvocations) {
-            affectedInvocations.append(createCaptors(methodInvocation))
-                    .append(createMockVerifyConfiguration(methodInvocation))
-                    .append(createArgumentCollection(methodInvocation))
-                    .append(createExpectedResults(methodInvocation))
-                    .append("\n")
-                    .append(createMockAssertions(methodInvocation));
-        }
-        return affectedInvocations.toString();
+        List<MethodCapture> affected = MethodCapture.affectedInvocations(capturedData);
+        List<MethodInvocation> methodInvocations = MethodInvocation.of(affected);
+        return methodInvocations.stream()
+                .map(this::testCreation)
+                .collect(Collectors.joining());
     }
 
-    private List<MethodInvocation> collectMethodInvocations(List<MethodCapture> affected) {
-        List<MethodInvocation> methodInvocations = new ArrayList<>();
-        for (MethodCapture methodCapture : affected) {
-            if (isaMethodInvocationsContainMethod(methodInvocations, methodCapture)) {
-                addToExistingInvocation(methodInvocations, methodCapture);
-            } else {
-                addNewInvocation(methodInvocations, methodCapture);
-            }
-        }
-        return methodInvocations;
+    private String testCreation(MethodInvocation methodInvocation) {
+        return methodInvocation.forEachArgument(this::createCaptors)
+                + methodInvocation.apply(this::createMockVerifyConfiguration)
+                + methodInvocation.forEachArgument(this::createArgumentCollection)
+                + methodInvocation.forEachArgument(this::createExpectedResults)
+                + methodInvocation.forEachArgument(this::createMockAssertions);
     }
 
-    private String createDependencyMocks(Class testClass) {
-        StringBuilder mocks = new StringBuilder();
-        for (Field field : getClassFields(testClass)) {
-            final String typeName = field.getType().getTypeName();
-            if (Modifier.isStatic(field.getModifiers()) || "ru.panfio.legacytester.LegacyTester".equals(typeName)) {
-                continue;
-            }
-            final String fieldName = field.getName();
-            String fieldVariable = fieldName + MOCK_FIELD_VARIABLE_SUFFIX;
-            String mock = bodySpace + typeName + " " + fieldName + " = " + MOCKITO_CLASS + ".mock(" + typeName + ".class);\n" +
-                    bodySpace + "Field " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
-                    bodySpace + fieldVariable + ".setAccessible(true);\n" +
-                    bodySpace + fieldVariable + ".set(testClass, " + fieldName + ");\n";
-            mocks.append(mock).append("\n");
-        }
-        return mocks.toString();
+    private String createCaptors(MethodInvocation methodInvocation, String argumentName) {
+        String methodName = methodInvocation.getMethod().getName();
+        final String type = methodInvocation.getArguments().get(argumentName).get(0).getClass().getTypeName();
+        String captor = methodName + argumentName + CAPTOR_VARIABLE_SUFFIX;
+        return captorCreation(type, captor);
     }
 
-    private String createCaptors(MethodInvocation methodInvocation) {
-        Map<String, List<Object>> arguments = methodInvocation.getArguments();
-        Set<String> argumentNames = arguments.keySet();
-        StringBuilder captors = new StringBuilder();
-        for (String argumentName : argumentNames) {
-            Method method = methodInvocation.getMethod();
-            String methodName = method.getName();
-            final String type = arguments.get(argumentName).get(0).getClass().getTypeName();
-            String captor = methodName + argumentName + CAPTOR_VARIABLE_SUFFIX;
-            String argumentCaptor = bodySpace + "final " + ARGUMENT_CAPTOR_CLASS + "<" + type + "> " + captor + " = " + ARGUMENT_CAPTOR_CLASS + ".forClass(" + type + ".class);\n";
-            captors.append(argumentCaptor);
-        }
-        return captors.toString();
+    private String captorCreation(String type, String captor) {
+        return bodySpace + "final " + ARGUMENT_CAPTOR_CLASS + "<" + type + "> " + captor + " = " + ARGUMENT_CAPTOR_CLASS + ".forClass(" + type + ".class);\n";
     }
 
     private String createMockVerifyConfiguration(MethodInvocation methodInvocation) {
-        Map<String, List<Object>> arguments = methodInvocation.getArguments();
-        Set<String> argumentNames = arguments.keySet();
-        int numberOfInvocation = getNumberOfInvocations(arguments);
-        Method method = methodInvocation.getMethod();
-        String methodName = method.getName();
-        String captorArguments = generateCaptorArguments(argumentNames, method);
         String fieldMock = methodInvocation.getFieldName();
-        return bodySpace + MOCKITO_CLASS + ".verify(" + fieldMock + ", " + MOCKITO_CLASS + ".times(" + numberOfInvocation + "))." + methodName + "(" + captorArguments + ");\n";
+        int invocationCount = methodInvocation.invocationCount();
+        String methodName = methodInvocation.getMethod().getName();
+        String captorArguments = generateCaptorArguments(methodInvocation.argumentNames(), methodName);
+        return mockVerification(fieldMock, invocationCount, methodName, captorArguments);
     }
 
-    private int getNumberOfInvocations(Map<String, List<Object>> arguments) {
-        for (String argumentName : arguments.keySet()) {
-            List<Object> passedParameters = arguments.get(argumentName);
-            return passedParameters.size();
-        }
-        return 0;
+    private String mockVerification(String fieldMock, int invocationCount, String methodName, String captorArguments) {
+        return bodySpace + MOCKITO_CLASS + ".verify(" + fieldMock + ", " + MOCKITO_CLASS + ".times(" + invocationCount + "))." + methodName + "(" + captorArguments + ");\n";
     }
 
-    protected String generateCaptorArguments(Set<String> argumentNames, Method method) {
-        String methodName = method.getName();
+    private String createArgumentCollection(MethodInvocation methodInvocation, String argumentName) {
+        Map<String, List<Object>> arguments = methodInvocation.getArguments();
+        final String variable = methodInvocation.getMethod().getName() + argumentName;
+        final String type = arguments.get(argumentName).get(0).getClass().getTypeName();
+        String captor = variable + CAPTOR_VARIABLE_SUFFIX;
+        String result = variable + CAPTOR_RESULT_VARIABLE_SUFFIX;
+        return captorArgumentCollection(type, result, captor);
+    }
+
+    private String captorArgumentCollection(String type, String result, String captor) {
+        return bodySpace + "List<" + type + "> " + result + " = " + captor + ".getAllValues();\n";
+    }
+
+    private String createExpectedResults(MethodInvocation methodInvocation, String argumentName) {
+        String methodName = methodInvocation.getMethod().getName();
+        String result = methodName + argumentName + CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
+        final String passedParameters = methodInvocation.getArguments().get(argumentName).toString();
+        return captorExpectedResult(result, passedParameters);
+    }
+
+    private String captorExpectedResult(String result, String passedParameters) {
+        return bodySpace + "String " + result + " = \"" + passedParameters + "\";\n";
+    }
+
+    private String createMockAssertions(MethodInvocation methodInvocation, String argumentName) {
+        final String variable = methodInvocation.getMethod().getName() + argumentName;
+        String result = variable + CAPTOR_RESULT_VARIABLE_SUFFIX;
+        String expectedResult = variable + CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
+        return mockAssertion(result, expectedResult);
+    }
+
+    private String mockAssertion(String result, String expectedResult) {
+        return bodySpace + ASSERT_CLASS + ".assertEquals(" + expectedResult + ", " + result + ".toString());\n";
+    }
+
+    private String generateCaptorArguments(Collection<String> argumentNames, String methodName) {
         final String params = argumentNames.stream()
                 .map(argumentName -> methodName + argumentName + CAPTOR_VARIABLE_SUFFIX + ".capture()")
                 .reduce("", (acc, name) -> acc.concat(name + ","));
         return "".equals(params) ? "" : params.substring(0, params.length() - 1);
-    }
-
-    private String createArgumentCollection(MethodInvocation methodInvocation) {
-        Map<String, List<Object>> arguments = methodInvocation.getArguments();
-        Set<String> argumentNames = arguments.keySet();
-        StringBuilder collectedArguments = new StringBuilder();
-        for (String argumentName : argumentNames) {
-            Method method = methodInvocation.getMethod();
-            String methodName = method.getName();
-            final String type = arguments.get(argumentName).get(0).getClass().getTypeName();
-            String captor = methodName + argumentName + CAPTOR_VARIABLE_SUFFIX;
-            String result = methodName + argumentName + CAPTOR_RESULT_VARIABLE_SUFFIX;
-            String collectedArgument = bodySpace + "List<" + type + "> " + result + " = " + captor + ".getAllValues();\n";
-            collectedArguments.append(collectedArgument);
-        }
-        return collectedArguments.toString();
-    }
-
-    private String createExpectedResults(MethodInvocation methodInvocation) {
-        Map<String, List<Object>> arguments = methodInvocation.getArguments();
-        Set<String> argumentNames = arguments.keySet();
-        StringBuilder expectedResults = new StringBuilder();
-        for (String argumentName : argumentNames) {
-            Method method = methodInvocation.getMethod();
-            String methodName = method.getName();
-            List<Object> passedParameters = arguments.get(argumentName);
-            String result = methodName + argumentName + CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
-            String expectedResult = bodySpace + "String " + result + " = \"" + passedParameters.toString() + "\";\n";
-            expectedResults.append(expectedResult);
-        }
-        return expectedResults.toString();
-    }
-
-    private String createMockAssertions(MethodInvocation methodInvocation) {
-        Map<String, List<Object>> arguments = methodInvocation.getArguments();
-        Set<String> argumentNames = arguments.keySet();
-        StringBuilder assertions = new StringBuilder();
-        for (String argumentName : argumentNames) {
-            Method method = methodInvocation.getMethod();
-            String methodName = method.getName();
-            String result = methodName + argumentName + CAPTOR_RESULT_VARIABLE_SUFFIX;
-            String expectedResult = methodName + argumentName + CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
-            String assertion = bodySpace + ASSERT_CLASS + ".assertEquals(" + expectedResult + ", " + result + ".toString());\n";
-            assertions.append(assertion);
-        }
-        return assertions.toString();
-    }
-
-    private void addNewInvocation(List<MethodInvocation> methodInvocations, MethodCapture methodCapture) {
-        Method method = methodCapture.getMethod();
-        MethodInvocation methodInvocation = new MethodInvocation(method, methodCapture.getFieldName());
-        addInvocation(methodCapture, methodInvocation);
-        methodInvocations.add(methodInvocation);
-    }
-
-    private void addToExistingInvocation(List<MethodInvocation> methodInvocations, MethodCapture methodCapture) {
-        Method method = methodCapture.getMethod();
-        methodInvocations.stream()
-                .filter(methodInvocation -> methodInvocation.getMethod().equals(method))
-                .findFirst()
-                .ifPresent(methodInvocation -> this.addInvocation(methodCapture, methodInvocation));
-    }
-
-    private boolean isaMethodInvocationsContainMethod(List<MethodInvocation> methodInvocations, MethodCapture capture) {
-        return methodInvocations.stream().anyMatch(methodInvocation -> methodInvocation.getMethod().equals(capture.getMethod()));
-    }
-
-    /**
-     * Mutates MethodInvocation object!
-     */
-    private void addInvocation(MethodCapture capture, MethodInvocation methodInvocation) {
-        Method method = capture.getMethod();
-        List<String> parameterNames = getParameterNames(method);
-        Object[] arguments = capture.getArguments();
-        for (int index = 0; index < arguments.length; index++) {
-            methodInvocation.addInvocation(parameterNames.get(index), arguments[index]);
-        }
-    }
-
-    private List<MethodCapture> getDependenciesInvocations() {
-        return capturedData.stream()
-                .filter(capture -> capture.getType() == MethodCapture.Type.DEPENDENCY)
-                .collect(Collectors.toList());
-    }
-
-    private List<MethodCapture> getAffectedDependenciesInvocations() {
-        return capturedData.stream()
-                .filter(capture -> capture.getType() == MethodCapture.Type.AFFECT)
-                .collect(Collectors.toList());
     }
 }

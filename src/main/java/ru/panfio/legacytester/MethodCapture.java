@@ -2,6 +2,8 @@ package ru.panfio.legacytester;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Container for storing method invocation data.
@@ -45,6 +47,18 @@ public class MethodCapture {
     public MethodCapture setFieldName(String fieldName) {
         this.fieldName = fieldName;
         return this;
+    }
+
+    public static List<MethodCapture> dependenciesInvocations(List<MethodCapture> capturedData) {
+        return capturedData.stream()
+                .filter(capture -> capture.getType() == MethodCapture.Type.DEPENDENCY)
+                .collect(Collectors.toList());
+    }
+
+    public static List<MethodCapture> affectedInvocations(List<MethodCapture> capturedData) {
+        return capturedData.stream()
+                .filter(capture -> capture.getType() == MethodCapture.Type.AFFECT)
+                .collect(Collectors.toList());
     }
 
     @Override
