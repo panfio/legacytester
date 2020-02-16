@@ -1,7 +1,5 @@
 package ru.panfio.legacytester.spring;
 
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import ru.panfio.legacytester.FieldInvocationHandler;
 import ru.panfio.legacytester.LegacyTester;
 import ru.panfio.legacytester.Testee;
@@ -9,16 +7,19 @@ import ru.panfio.legacytester.Testee;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
-public class LegacyTesterBeanPostProcessor implements BeanPostProcessor {
+public class LegacyTesterBeanPostProcessor {
 
-    @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-        return bean;
+    private final Object bean;
+    private final String beanName;
+    private final Class<?> beanClass;
+
+    public LegacyTesterBeanPostProcessor(Object bean, String beanName) {
+        this.bean = bean;
+        this.beanName = beanName;
+        this.beanClass = bean.getClass();
     }
 
-    @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        Class beanClass = bean.getClass();
+    public Object createProxy() {
         if (!beanClass.isAnnotationPresent(Testee.class)) {
             return bean;
         }

@@ -33,14 +33,14 @@ public class MusicService implements Processing {
         Map<String, TrackInfo> trackInfos = getTrackInfos();  //soundCloudDao.tracksInfo()
         List<PlayHistory> listenedTracks = getListenedTracks();  //soundCloudDao.recentlyPlayed()
         List<PlayHistory> what = soundCloudDao.stub("LEGACY TESTER MOCK TEST", 42, listenedTracks);
-        ... //1000 lines of realy complicated logic
+        ... //1000 lines of really complicated logic
         List<PlayHistory> isLove = soundCloudDao.stub("LEGACY TESTER SECOND", 24, null);
         List<Music> collectedTracks = collectTracks(trackInfos, listenedTracks);
         //Capture this event
         sendMessages(collectedTracks);  //messageBus.sendAll()
         return collectedTracks;
     }
-    ...
+    //...
 }
 ```
 
@@ -49,14 +49,19 @@ Just add annotations and define a LegacyTesterBeanPostProcessor bean in the spri
 ```java
 @SpringBootApplication
 public class MySpringBootApplication {
-	public static void main(String[] args) {
-		ConfigurableApplicationContext context = SpringApplication.run(MySpringBootApplication.class, args);
-	}
+    public static void main(String[] args) {
+        ConfigurableApplicationContext context = SpringApplication.run(MySpringBootApplication.class, args);
+    }
 
-	@Bean
-	public LegacyTesterBeanPostProcessor captureAnnotationBeanPostProcessor() {
-		return new LegacyTesterBeanPostProcessor();
-	}
+    @Bean
+    public BeanPostProcessor captureAnnotationBeanPostProcessor() {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+                return new LegacyTesterBeanPostProcessor(bean, beanName).createProxy();
+            }
+        };
+    }
 }
 ```
 
@@ -134,7 +139,7 @@ The qualifier `@Testee(qualifier = "constructMusic")` connects concrete instance
 ```java
 @Testee
 public class MusicService implements Processing {
-    private static LegacyTester tester = new LegacyTester(MyTestClass.class);
+    private static LegacyTester tester = new LegacyTester(MusicService.class);
 
     @Autowired
     MessageBus messageBus;
