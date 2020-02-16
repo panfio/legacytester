@@ -83,7 +83,7 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
 
     private String mockCreation(String typeName, String fieldName, String fieldVariable) {
         return bodySpace + typeName + " " + fieldName + " = " + MOCKITO_CLASS + ".mock(" + typeName + ".class);\n" +
-                bodySpace + "Field " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
+                bodySpace + "java.lang.reflect.Field " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
                 bodySpace + fieldVariable + ".setAccessible(true);\n" +
                 bodySpace + fieldVariable + ".set(testClass, " + fieldName + ");\n";
     }

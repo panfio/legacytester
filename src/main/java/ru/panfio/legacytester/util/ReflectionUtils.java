@@ -23,7 +23,7 @@ public final class ReflectionUtils {
 
     public static List<String> getParameterTypes(Method method) {
         List<String> parameters = new ArrayList<>();
-        Type[] gpType = method.getGenericParameterTypes();
+        Class[] gpType = method.getParameterTypes();
         for (int i = 0; i < gpType.length; i++) {
             parameters.add(gpType[i].getTypeName());
         }

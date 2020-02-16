@@ -54,7 +54,7 @@ public class MySpringBootApplication {
     }
 
     @Bean
-    public BeanPostProcessor captureAnnotationBeanPostProcessor() {
+    public BeanPostProcessor legacyTesterBeanPostProcessor() {
         return new BeanPostProcessor() {
             @Override
             public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
@@ -149,8 +149,8 @@ public class MusicService implements Processing {
 
     @PostConstruct
     public void postConstruct() {
-        this.messageBus = tester.createFieldProxy(MessageBus.class, new LegacyTesterProxy(messageBus, "sendAll").setFieldName(messageBus));
-        this.soundCloudDao = tester.createFieldProxy(SoundCloudDao.class, new LegacyTesterProxy(soundCloudDao).setFieldName(soundCloudDao));
+        this.messageBus = tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "sendAll").setFieldName("messageBus"));
+        this.soundCloudDao = tester.createFieldProxy(SoundCloudDao.class, new FieldInvocationHandler(soundCloudDao).setFieldName("soundCloudDao"));
     }
 
     @Testee

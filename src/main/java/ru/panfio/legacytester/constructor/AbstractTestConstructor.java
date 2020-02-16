@@ -19,7 +19,7 @@ public abstract class AbstractTestConstructor {
     private final static String DEFAULT_SPACE_BEFORE_METHOD_SIGNATURE = "    ";
     private static final String DEFAULT_SPACE_BEFORE_METHOD_BODY = "        ";
     private static final String TEST_METHOD_NAME_SUFFIX = "Test";
-    protected static final String ASSERT_CLASS = "org.junit.Assert";
+    protected static final String ASSERT_CLASS = "org.junit.jupiter.api.Assertions";//"org.junit.Assert";
     private static final List<String> TYPES_FOR_SERIALIZATION = new ArrayList<>(Arrays.asList("java.lang.String",
             "byte", "short", "int", "long", "float", "double", "boolean", "char",
             "byte[]", "short[]", "int[]", "long[]", "float[]", "double[]", "boolean[]", "char[]"));
@@ -48,7 +48,7 @@ public abstract class AbstractTestConstructor {
     }
 
     protected String generateThrowsDeclaration() {
-        return " throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException ";
+        return " throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, java.lang.reflect.InvocationTargetException ";
     }
 
     protected String generateTestAnnotation() {
@@ -57,7 +57,8 @@ public abstract class AbstractTestConstructor {
 
     protected String generateTestMethodName(Method testMethod) {
         String originalMethodName = testMethod.getName();
-        return signatureSpace + "public void " + originalMethodName + TEST_METHOD_NAME_SUFFIX + "()" + generateThrowsDeclaration() + "{\n";
+        int id = (int) (Math.random()*100000);
+        return signatureSpace + "public void " + originalMethodName + TEST_METHOD_NAME_SUFFIX + id + "()" + generateThrowsDeclaration() + "{\n";
     }
 
     protected String generateCloseBracket() {
@@ -73,6 +74,9 @@ public abstract class AbstractTestConstructor {
 
     protected String generateInputParams(Method testMethod, Object[] params) {
         List<Parameter> parameters = getMethodParameters(testMethod);
+        if (parameters.isEmpty()) {
+            return "";
+        }
         if (parameters.size() != params.length) {
             throw new RuntimeException("Parameter mismatch. Please pass all parameters");
         }
@@ -115,14 +119,14 @@ public abstract class AbstractTestConstructor {
         final String parameterClasses = generateParameterClasses(testMethod);
         if ("void".equals(returnType)) {
             if (Modifier.isPrivate(testMethod.getModifiers())) {
-                return bodySpace + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", "+parameterClasses+");\n" +
+                return bodySpace + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
                         bodySpace + "method.setAccessible(true);\n" +
                         bodySpace + "method.invoke(testClass, " + params + ");\n";
             }
             return bodySpace + "testClass." + methodName + "(" + params + ");\n";
         }
         if (Modifier.isPrivate(testMethod.getModifiers())) {
-            return bodySpace + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", "+parameterClasses+");\n" +
+            return bodySpace + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
                     bodySpace + "method.setAccessible(true);\n" +
                     bodySpace + returnType + " result = (" + returnType + ") method.invoke(testClass, " + params + ");\n";
         }
