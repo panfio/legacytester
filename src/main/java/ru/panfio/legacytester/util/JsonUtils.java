@@ -21,7 +21,7 @@ public final class JsonUtils {
 
     public static <T> T parse(String json, TypeReference<T> reference) {
         try {
-            var mapper = new ObjectMapper();
+            ObjectMapper mapper = new ObjectMapper();
             return (T) mapper.readValue(json, reference);
         } catch (IOException e) {
             throw new RuntimeException("Parse Error" + e.getMessage());

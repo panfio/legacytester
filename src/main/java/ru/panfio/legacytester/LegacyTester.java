@@ -1,7 +1,7 @@
 package ru.panfio.legacytester;
 
-import org.springframework.cglib.proxy.Callback;
-import org.springframework.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.Callback;
+import net.sf.cglib.proxy.Enhancer;
 import ru.panfio.legacytester.constructor.MockTestConstructor;
 import ru.panfio.legacytester.constructor.TestConstructor;
 import ru.panfio.legacytester.spring.MethodInvocationInterceptor;
@@ -161,7 +161,7 @@ public class LegacyTester {
      *     LegacyTester tester = new LegacyTester(MyTestClass.class);
      *     private final MessageBus messageBus;
      *     public MyTestClass(MessageBus messageBus) {
-     *         this.messageBus = tester.createFieldProxy(MessageBus.class, new LegacyTesterProxy(messageBus, "send").setFieldName(messageBus));
+     *         this.messageBus = tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "send").setFieldName(messageBus));
      *     }
      * }</pre>
      * <p>
@@ -172,7 +172,7 @@ public class LegacyTester {
      *     private MessageBus messageBus;
      *     @PostConstruct
      *     public void postConstruct() {
-     *         this.messageBus = tester.createFieldProxy(MessageBus.class, new LegacyTesterProxy(messageBus, "send").setFieldName(messageBus));
+     *         this.messageBus = tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "send").setFieldName(messageBus));
      *     }
      * }</pre>
      *

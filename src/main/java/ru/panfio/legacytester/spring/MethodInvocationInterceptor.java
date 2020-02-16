@@ -1,7 +1,7 @@
 package ru.panfio.legacytester.spring;
 
-import org.springframework.cglib.proxy.MethodInterceptor;
-import org.springframework.cglib.proxy.MethodProxy;
+import net.sf.cglib.proxy.MethodInterceptor;
+import net.sf.cglib.proxy.MethodProxy;
 import ru.panfio.legacytester.LegacyTester;
 import ru.panfio.legacytester.Testee;
 
