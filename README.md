@@ -5,6 +5,26 @@ Automatic test creation tool for complex methods with many dependencies. It leve
 
 Works well with primitive types, DTO / POJO objects that override the `toString()` method, and their collections.
 
+## Installation
+
+Clone and build LegacyTester:
+
+```sh
+git clone https://github.com/panfio/legacytester.git
+cd legacytester
+./mvnw install
+```
+
+Add a dependency into your project:
+
+```xml
+<dependency>
+    <groupId>ru.panfio</groupId>
+    <artifactId>legacytester</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
 ## Demo
 
 Suppose you have a ticket with some bug fix/improvements. You plunged into legacy code and found a place for change. But you doubt the solution to the problem because of the fragile and complex conditional logic inside.
