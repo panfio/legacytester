@@ -74,6 +74,10 @@ public class MockTestConstructor implements TestConstructor {
     }
 
     private String createMockString(Field field) {
+        if (capturedData.size() == 1) {
+            // no field proxy data and mock is redundant
+            return "";
+        }
         final String typeName = field.getType().getTypeName();
         final String fieldName = field.getName();
         final String fieldVariable = fieldName + conf.MOCK_FIELD_VARIABLE_SUFFIX;

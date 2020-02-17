@@ -3,9 +3,9 @@ package ru.panfio.legacytester;
 import lombok.SneakyThrows;
 import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
-import ru.panfio.legacytester.constructor.ConstructorConfiguration;
 import ru.panfio.legacytester.constructor.MockTestConstructor;
 import ru.panfio.legacytester.constructor.TestConstructor;
+import ru.panfio.legacytester.constructor.TestSupplier;
 import ru.panfio.legacytester.spring.MethodInvocationInterceptor;
 
 import java.lang.reflect.InvocationHandler;
@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,14 +25,20 @@ public class LegacyTester {
     private final Class<?> testClass;
     private String qualifier = "default";
     private Map<String, FieldInvocationHandler> handlers = new HashMap<>();
-    private ConstructorConfiguration conf = new ConstructorConfiguration();
+    private TestSupplier<Class, List<MethodCapture>, TestConstructor> testSupplier;
+    private Consumer<TestConstructor> testHandler;
 
     public LegacyTester(Class<?> testClass) {
         this.testClass = testClass;
     }
 
-    public LegacyTester constructorConfiguration(ConstructorConfiguration conf) {
-        this.conf = conf;
+    public LegacyTester testHandler(Consumer<TestConstructor> testHandler) {
+        this.testHandler = testHandler;
+        return this;
+    }
+
+    public LegacyTester testSupplier(TestSupplier<Class, List<MethodCapture>, TestConstructor> supplier) {
+        this.testSupplier = supplier;
         return this;
     }
 
@@ -116,7 +123,19 @@ public class LegacyTester {
                         .result(result)
                         .exception(exception)
                         .build());
-        final TestConstructor testConstructor = new MockTestConstructor(testClass, capturedData).configuration(conf);
+
+        TestConstructor testConstructor = null;
+        if (testSupplier != null) {
+            testConstructor = testSupplier.get(testClass, capturedData);
+        }
+
+        if (testHandler != null) {
+            testHandler.accept(testConstructor);
+            return;
+        }
+
+        // default
+        testConstructor = new MockTestConstructor(testClass, capturedData);
         String testText = testConstructor.construct();
         printGeneratedTest(testText);
     }

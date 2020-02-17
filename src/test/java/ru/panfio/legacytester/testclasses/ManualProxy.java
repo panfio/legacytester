@@ -4,6 +4,8 @@ package ru.panfio.legacytester.testclasses;
 import ru.panfio.legacytester.FieldInvocationHandler;
 import ru.panfio.legacytester.LegacyTester;
 import ru.panfio.legacytester.Testee;
+import ru.panfio.legacytester.constructor.ConstructorConfiguration;
+import ru.panfio.legacytester.constructor.MockTestConstructor;
 import ru.panfio.legacytester.dependencies.MessageBus;
 import ru.panfio.legacytester.dependencies.soundcloud.Music;
 import ru.panfio.legacytester.dependencies.soundcloud.PlayHistory;
@@ -71,8 +73,11 @@ public class ManualProxy {
         trackInfos.values().forEach(trackInfo -> {
             new LegacyTester(ManualProxy.class)
                     .qualifier("throwsException")
-                    .test(() -> throwsException(null, trackInfo),
-                            null, trackInfo);
+                    .testSupplier(MockTestConstructor::new)
+                    .testHandler(test -> System.out.println(test
+                            .configuration(new ConstructorConfiguration().signatureSpace("  ").bodySpace("    "))
+                            .construct()))
+                    .test(() -> throwsException(null, trackInfo), null, trackInfo);
         });
     }
 

@@ -2,8 +2,7 @@ package ru.panfio.legacytester.testclasses;
 
 import ru.panfio.legacytester.LegacyTester;
 import ru.panfio.legacytester.Testee;
-import ru.panfio.legacytester.constructor.ConstructorConfiguration;
-import ru.panfio.legacytester.dependencies.*;
+import ru.panfio.legacytester.dependencies.MessageBus;
 import ru.panfio.legacytester.dependencies.soundcloud.Music;
 import ru.panfio.legacytester.dependencies.soundcloud.PlayHistory;
 import ru.panfio.legacytester.dependencies.soundcloud.SoundCloudDao;
@@ -27,10 +26,6 @@ public class QualifierPure {
         List<PlayHistory> listenedTracks = getListenedTracks();
         List<Music> collectedTracks = new LegacyTester(QualifierPure.class)
                 .qualifier("collectTracks")
-                .constructorConfiguration(new ConstructorConfiguration()
-                        .bodySpace("  ")
-                        .signatureSpace(" ")
-                        .assertionClass("org.junit.jupiter.api.Assertions"))
                 .test(() -> collectTracks(trackInfos, listenedTracks),
                         trackInfos, listenedTracks);
         sendMessages(collectedTracks);
