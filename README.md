@@ -90,64 +90,39 @@ This creates a test method that you can find in the application log. Just copy a
 
 ```java
 @Test
-public void processTest() throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+public void processTest777() throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, java.lang.reflect.InvocationTargetException {
     //Please create a test class manually if necessary
-    ru.panfio.telescreen.handler.service.MusicService testClass = new ru.panfio.telescreen.handler.service.MusicService();
+    ManualProxy testClass = new ManualProxy(null,null);
 
-    ru.panfio.telescreen.handler.service.MessageBus messageBus = org.mockito.Mockito.mock(ru.panfio.telescreen.handler.service.MessageBus.class);
+    MessageBus messageBus = Mockito.mock(MessageBus.class);
     Field messageBusField = testClass.getClass().getDeclaredField("messageBus");
     messageBusField.setAccessible(true);
     messageBusField.set(testClass, messageBus);
-
-    ru.panfio.telescreen.handler.dao.SoundCloudDao soundCloudDao = org.mockito.Mockito.mock(ru.panfio.telescreen.handler.dao.SoundCloudDao.class);
+    SoundCloudDao soundCloudDao = Mockito.mock(SoundCloudDao.class);
     Field soundCloudDaoField = testClass.getClass().getDeclaredField("soundCloudDao");
     soundCloudDaoField.setAccessible(true);
     soundCloudDaoField.set(testClass, soundCloudDao);
-
     //Given
-    //Original value: 123
-    int integer = (int) ru.panfio.legacytester.util.SerializableUtils.serializeFromString("rO0ABXNyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdWV4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAB7");
-    //Original value: 123
-    java.lang.String str = (java.lang.String) ru.panfio.legacytester.util.SerializableUtils.serializeFromString("rO0ABXQAAzEyMw==");
-    //Original value: true
-    boolean boot = (boolean) ru.panfio.legacytester.util.SerializableUtils.serializeFromString("rO0ABXNyABFqYXZhLmxhbmcuQm9vbGVhbs0gcoDVnPruAgABWgAFdmFsdWV4cAE=");
 
-    java.util.Map<java.lang.String, ru.panfio.telescreen.handler.model.soundcloud.TrackInfo> tracksInfo1ResultInvocation = ru.panfio.legacytester.util.JsonUtils.parse("{\"732251920\":...\"}}", new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<java.lang.String, ru.panfio.telescreen.handler.model.soundcloud.TrackInfo>>() {});
-    org.mockito.Mockito.when(soundCloudDao.tracksInfo()).thenReturn(tracksInfo1ResultInvocation);
-    java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory> recentlyPlayed2ResultInvocation = ru.panfio.legacytester.util.JsonUtils.parse("[{\"id\":1....640Z\"}]", new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory>>() {});
-    org.mockito.Mockito.when(soundCloudDao.recentlyPlayed()).thenReturn(recentlyPlayed2ResultInvocation);
-    java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory> stub3ResultInvocation = ru.panfio.legacytester.util.JsonUtils.parse("[{\"id\":1...Z\"}]", new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory>>() {});
-    //Original value: LEGACY TESTER MOCK TEST
-    java.lang.String str3PassedParameter = (java.lang.String) ru.panfio.legacytester.util.SerializableUtils.serializeFromString("rO0ABXQAF0xFR0FDWSBURVNURVIgTU9DSyBURVNU");
-    //Original value: 42
-    int inte3PassedParameter = (int) ru.panfio.legacytester.util.SerializableUtils.serializeFromString("rO0ABXNyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdWV4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAq");
-    java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory> list3PassedParameter = ru.panfio.legacytester.util.JsonUtils.parse("[{\"id\":157985636930...8:46:31.640Z\"}]", new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory>>() {});
-    org.mockito.Mockito.when(soundCloudDao.stub(str3PassedParameter,inte3PassedParameter,list3PassedParameter)).thenReturn(stub3ResultInvocation);
-    java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory> stub4ResultInvocation = ru.panfio.legacytester.util.JsonUtils.parse("null", new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory>>() {});
-    //Original value: LEGACY TESTER SECOND
-    java.lang.String str4PassedParameter = (java.lang.String) ru.panfio.legacytester.util.SerializableUtils.serializeFromString("rO0ABXQAFExFR0FDWSBURVNURVIgU0VDT05E");
-    //Original value: 24
-    int inte4PassedParameter = (int) ru.panfio.legacytester.util.SerializableUtils.serializeFromString("rO0ABXNyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdWV4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAY");
-    java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory> list4PassedParameter = ru.panfio.legacytester.util.JsonUtils.parse("null", new com.fasterxml.jackson.core.type.TypeReference<java.util.List<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory>>() {});
-    org.mockito.Mockito.when(soundCloudDao.stub(str4PassedParameter,inte4PassedParameter,list4PassedParameter)).thenReturn(stub4ResultInvocation);
+    Map<String, TrackInfo> tracksInfo0ResultInvocation = JsonUtils.parse("{\"732251920\":{\"id\":\"732251920\",\"artist\":\"Vesky\",\"title\":\"Leaving\",\"url\":\"https://soundcloud.com/vskymusic/leaving\"},\"746114746\":{\"id\":\"746114746\",\"artist\":\"vibe.digital\",\"title\":\"Episode 062 - A Look Forward at 2020\",\"url\":\"https://soundcloud.com/vibe-digital/episode062\"},\"745949599\":{\"id\":\"745949599\",\"artist\":\"-Bucky-\",\"title\":\"Bucky - Night Racer\",\"url\":\"https://soundcloud.com/bucky-music/bucky-night-racer\"}}", new TypeReference<Map<String, TrackInfo>>() {});
+    org.mockito.Mockito.when(soundCloudDao.tracksInfo()).thenReturn(tracksInfo0ResultInvocation);
+    List<PlayHistory> recentlyPlayed1ResultInvocation = JsonUtils.parse("[{\"id\":1579856369307,\"externalId\":\"732251920\",\"listenTime\":\"2020-01-24T08:59:29.307Z\"},{\"id\":1579856079704,\"externalId\":\"745949599\",\"listenTime\":\"2020-01-24T08:54:39.704Z\"},{\"id\":1579855591640,\"externalId\":\"746114746\",\"listenTime\":\"2020-01-24T08:46:31.640Z\"}]", new TypeReference<List<PlayHistory>>() {});
+    org.mockito.Mockito.when(soundCloudDao.recentlyPlayed()).thenReturn(recentlyPlayed1ResultInvocation);
 
     //When
-    java.util.List<ru.panfio.telescreen.handler.model.Music> result = testClass.process(integer,str,boot);
+    testClass.process();
 
     //Then
-    final org.mockito.ArgumentCaptor<java.lang.String> sendAlltopicCaptor = org.mockito.ArgumentCaptor.forClass(java.lang.String.class);
-    final org.mockito.ArgumentCaptor<java.util.ArrayList> sendAllmessagesCaptor = org.mockito.ArgumentCaptor.forClass(java.util.ArrayList.class);
-    org.mockito.Mockito.verify(messageBus, org.mockito.Mockito.times(1)).sendAll(sendAlltopicCaptor.capture(),sendAllmessagesCaptor.capture());
-    List<java.lang.String> sendAlltopicResult = sendAlltopicCaptor.getAllValues();
-    List<java.util.ArrayList> sendAllmessagesResult = sendAllmessagesCaptor.getAllValues();
-    String sendAlltopicExpectedResult = "[music]";
-    String sendAllmessagesExpectedResult = "[[Music{id=1579856369307, externalId='73225..../episode062'}]]";
+    final Mockito<String> sendAllarg0Captor = Mockito.forClass(String.class);
+    final Mockito<ArrayList> sendAllarg1Captor = Mockito.forClass(ArrayList.class);
+    Mockito.verify(messageBus, Mockito.times(1)).sendAll(sendAllarg0Captor.capture(),sendAllarg1Captor.capture());
+    List<String> sendAllarg0Result = sendAllarg0Captor.getAllValues();
+    List<ArrayList> sendAllarg1Result = sendAllarg1Captor.getAllValues();
+    String sendAllarg0ExpectedResult = "[music]";
+    String sendAllarg1ExpectedResult = "[[Music{id=1579856369307, externalId='732251920', type=SOUNDCLOUD, artist='Vesky', title='Leaving', listenTime=2020-01-24T08:59:29.307Z, url='https://soundcloud.com/vskymusic/leaving'}, Music{id=1579856079704, externalId='745949599', type=SOUNDCLOUD, artist='-Bucky-', title='Bucky - Night Racer', listenTime=2020-01-24T08:54:39.704Z, url='https://soundcloud.com/bucky-music/bucky-night-racer'}, Music{id=1579855591640, externalId='746114746', type=SOUNDCLOUD, artist='vibe.digital', title='Episode 062 - A Look Forward at 2020', listenTime=2020-01-24T08:46:31.640Z, url='https://soundcloud.com/vibe-digital/episode062'}]]";
+    Assertions.assertEquals(sendAllarg0ExpectedResult, sendAllarg0Result.toString());
+    Assertions.assertEquals(sendAllarg1ExpectedResult, sendAllarg1Result.toString());
 
-    org.junit.Assert.assertEquals(sendAlltopicExpectedResult, sendAlltopicResult.toString());
-    org.junit.Assert.assertEquals(sendAllmessagesExpectedResult, sendAllmessagesResult.toString());
-
-    String expectedResult = "[Music...url='https://soundcloud.com/vibe-digital/episode062'}]";
-    org.junit.Assert.assertEquals(expectedResult, result.toString());
 }
 ```
 
