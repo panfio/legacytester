@@ -1,13 +1,9 @@
 package ru.panfio.legacytester;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-
-import static ru.panfio.legacytester.util.ReflectionUtils.getMethodParameters;
 
 /**
  * Container for storing method invocation data.
@@ -61,14 +57,20 @@ public class MethodCapture {
 
     public static List<MethodCapture> dependenciesInvocations(List<MethodCapture> capturedData) {
         return capturedData.stream()
-                .filter(capture -> capture.getType() == MethodCapture.Type.DEPENDENCY)
+                .filter(capture -> capture.getType() == Type.DEPENDENCY)
                 .collect(Collectors.toList());
     }
 
     public static List<MethodCapture> affectedInvocations(List<MethodCapture> capturedData) {
         return capturedData.stream()
-                .filter(capture -> capture.getType() == MethodCapture.Type.AFFECT)
+                .filter(capture -> capture.getType() == Type.AFFECT)
                 .collect(Collectors.toList());
+    }
+
+    public static MethodCapture testInvocation(List<MethodCapture> capturedData) {
+        return capturedData.stream()
+                .filter(capture -> capture.getType() == Type.TEST)
+                .findFirst().orElse(null);
     }
 
     @Override

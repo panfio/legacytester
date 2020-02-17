@@ -15,31 +15,25 @@ import static ru.panfio.legacytester.util.SerializableUtils.serializeToString;
 /**
  * Class contains common functionality for all Test Constructors.
  */
-public abstract class AbstractTestConstructor {
-    private final static String DEFAULT_SPACE_BEFORE_METHOD_SIGNATURE = "    ";
-    private static final String DEFAULT_SPACE_BEFORE_METHOD_BODY = "        ";
-    private static final String TEST_METHOD_NAME_SUFFIX = "Test";
-    protected static final String ASSERT_CLASS = "org.junit.jupiter.api.Assertions";//"org.junit.Assert";
+public class Constructor {
     private static final List<String> TYPES_FOR_SERIALIZATION = new ArrayList<>(Arrays.asList("java.lang.String",
             "byte", "short", "int", "long", "float", "double", "boolean", "char",
             "byte[]", "short[]", "int[]", "long[]", "float[]", "double[]", "boolean[]", "char[]"));
-    protected Class<?> testClass;
-    protected MethodCapture testableMethodCapture;
-    protected String signatureSpace = DEFAULT_SPACE_BEFORE_METHOD_SIGNATURE;
-    protected String bodySpace = DEFAULT_SPACE_BEFORE_METHOD_BODY;
+    private final Class<?> testClass;
+    private final MethodCapture testMethodCapture;
+    private ConstructorConfiguration conf = new ConstructorConfiguration();
 
-    public AbstractTestConstructor(Class<?> testClass, MethodCapture testableMethodCapture) {
+    public Constructor(Class<?> testClass, MethodCapture testMethodCapture) {
         this.testClass = testClass;
-        this.testableMethodCapture = testableMethodCapture;
+        this.testMethodCapture = testMethodCapture;
     }
 
-    public AbstractTestConstructor spaceBeforeSignature(String signatureSpace) {
-        this.signatureSpace = signatureSpace;
-        return this;
+    public ConstructorConfiguration configuration() {
+        return conf;
     }
 
-    public AbstractTestConstructor spaceBeforeBody(String bodySpace) {
-        this.bodySpace = bodySpace;
+    public Constructor configuration(ConstructorConfiguration conf) {
+        this.conf = conf;
         return this;
     }
 
@@ -52,33 +46,31 @@ public abstract class AbstractTestConstructor {
     }
 
     protected String generateTestAnnotation() {
-        return signatureSpace + "@Test\n";
+        return conf.signatureSpace() + "@Test\n";
     }
 
-    protected String generateTestMethodName(Method testMethod) {
-        String originalMethodName = testMethod.getName();
+    protected String generateTestMethodName() {
+        String originalMethodName = testMethodCapture.methodName();
         int id = (int) (Math.random()*100000);
-        return signatureSpace + "public void " + originalMethodName + TEST_METHOD_NAME_SUFFIX + id + "()" + generateThrowsDeclaration() + "{\n";
+        return conf.signatureSpace() + "public void " + originalMethodName + conf.TEST_METHOD_NAME_SUFFIX + id + "()" + generateThrowsDeclaration() + "{\n";
     }
 
     protected String generateCloseBracket() {
-        return signatureSpace + "}";
+        return conf.signatureSpace() + "}";
     }
 
-    protected String generateClassCreation(Class testClass) {
+    protected String generateClassCreation() {
         final String className = testClass.getTypeName();
         final String constructorArguments = repeatArguments(getConstructorArguments(testClass), "null");
-        return bodySpace + "//Please create a test class manually if necessary\n" +
-                bodySpace + className + " testClass = new " + className + "(" + constructorArguments + ");\n";
+        return conf.bodySpace() + "//Please create a test class manually if necessary\n" +
+                conf.bodySpace() + className + " testClass = new " + className + "(" + constructorArguments + ");\n";
     }
 
-    protected String generateInputParams(Method testMethod, Object[] params) {
-        List<Parameter> parameters = getMethodParameters(testMethod);
+    protected String generateInputParams() {
+        Object[] params = testMethodCapture.getArguments();
+        List<Parameter> parameters = getMethodParameters(testMethodCapture.getMethod());
         if (parameters.isEmpty()) {
             return "";
-        }
-        if (parameters.size() != params.length) {
-            throw new RuntimeException("Parameter mismatch. Please pass all parameters");
         }
 
         StringBuilder inputData = new StringBuilder();
@@ -95,11 +87,11 @@ public abstract class AbstractTestConstructor {
     protected String generateObjectSerialization(Object value, String name, String type) {
         if (isIsaSerializableType(type) && Serializable.class.isAssignableFrom(value.getClass())) {
             String serVal = serializeToString((Serializable) value);
-            return bodySpace + "//Original value: " + commentLineBreaks(value.toString()) + "\n" +
-                    bodySpace + type + " " + name + " = (" + type + ") ru.panfio.legacytester.util.SerializableUtils.serializeFromString(\"" + serVal + "\");\n";
+            return conf.bodySpace() + "//Original value: " + commentLineBreaks(value.toString()) + "\n" +
+                    conf.bodySpace() + type + " " + name + " = (" + type + ") ru.panfio.legacytester.util.SerializableUtils.serializeFromString(\"" + serVal + "\");\n";
         }
         final String jsonValue = toJson(value);
-        return bodySpace + type + " " + name + " = ru.panfio.legacytester.util.JsonUtils.parse(\"" + escapeQuotes(jsonValue) + "\", new com.fasterxml.jackson.core.type.TypeReference<" + type + ">() {});\n";
+        return conf.bodySpace() + type + " " + name + " = ru.panfio.legacytester.util.JsonUtils.parse(\"" + escapeQuotes(jsonValue) + "\", new com.fasterxml.jackson.core.type.TypeReference<" + type + ">() {});\n";
     }
 
 
@@ -112,47 +104,49 @@ public abstract class AbstractTestConstructor {
     }
 
     // TODO refactor
-    protected String generateTestMethodInvocation(Method testMethod) {
+    protected String generateTestMethodInvocation() {
+        Method testMethod = testMethodCapture.getMethod();
         String methodName = testMethod.getName();
         String returnType = getmethodReturnType(testMethod);
         String params = generateArguments(testMethod);
         final String parameterClasses = generateParameterClasses(testMethod);
         if ("void".equals(returnType)) {
             if (Modifier.isPrivate(testMethod.getModifiers())) {
-                return bodySpace + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
-                        bodySpace + "method.setAccessible(true);\n" +
-                        bodySpace + "method.invoke(testClass, " + params + ");\n";
+                return conf.bodySpace() + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
+                        conf.bodySpace() + "method.setAccessible(true);\n" +
+                        conf.bodySpace() + "method.invoke(testClass, " + params + ");\n";
             }
-            return bodySpace + "testClass." + methodName + "(" + params + ");\n";
+            return conf.bodySpace() + "testClass." + methodName + "(" + params + ");\n";
         }
         if (Modifier.isPrivate(testMethod.getModifiers())) {
-            return bodySpace + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
-                    bodySpace + "method.setAccessible(true);\n" +
-                    bodySpace + returnType + " result = (" + returnType + ") method.invoke(testClass, " + params + ");\n";
+            return conf.bodySpace() + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
+                    conf.bodySpace() + "method.setAccessible(true);\n" +
+                    conf.bodySpace() + returnType + " result = (" + returnType + ") method.invoke(testClass, " + params + ");\n";
         }
-        return bodySpace + returnType + " result = testClass." + methodName + "(" + params + ");\n";
+        return conf.bodySpace() + returnType + " result = testClass." + methodName + "(" + params + ");\n";
     }
 
-    protected String generateResultToString(Object expectedResult) {
+    protected String generateResultToString() {
+        Object expectedResult = testMethodCapture.getResult();
         if (isVoidReturnType()) {
             return "";
         }
         if (expectedResult == null) {
-            return bodySpace + "String expectedResult = " + null + ";\n";
+            return conf.bodySpace() + "String expectedResult = " + null + ";\n";
         } else {
-            return bodySpace + "String expectedResult = \"" + escapeQuotes(expectedResult.toString()) + "\";\n";
+            return conf.bodySpace() + "String expectedResult = \"" + escapeQuotes(expectedResult.toString()) + "\";\n";
         }
     }
 
     private boolean isVoidReturnType() {
-        return "void".equals(testableMethodCapture.getMethod().getGenericReturnType().getTypeName());
+        return "void".equals(testMethodCapture.getMethod().getGenericReturnType().getTypeName());
     }
 
     protected String generateResultAssertToString() {
         if (isVoidReturnType()) {
             return "";
         }
-        return bodySpace + ASSERT_CLASS + ".assertEquals(expectedResult, result.toString());\n";
+        return conf.bodySpace() + conf.assertionClass() + ".assertEquals(expectedResult, result.toString());\n";
     }
 
     protected static String repeatArguments(int count, String argumentName) {

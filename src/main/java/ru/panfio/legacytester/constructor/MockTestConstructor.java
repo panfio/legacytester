@@ -13,53 +13,52 @@ import java.util.stream.Collectors;
 
 import static ru.panfio.legacytester.util.ReflectionUtils.*;
 
-public class MockTestConstructor extends AbstractTestConstructor implements TestConstructor {
-    private static final String MOCKITO_CLASS = "org.mockito.Mockito";
-    private static final String ARGUMENT_CAPTOR_CLASS = "org.mockito.ArgumentCaptor";
-    private static final String MOCK_FIELD_VARIABLE_SUFFIX = "Field";
-    private static final String MOCK_PARAMETER_VARIABLE_SUFFIX = "PassedParameter";
-    private static final String MOCK_RESULT_VARIABLE_SUFFIX = "ResultInvocation";
-    private static final String CAPTOR_VARIABLE_SUFFIX = "Captor";
-    private static final String CAPTOR_RESULT_VARIABLE_SUFFIX = "Result";
-    private static final String CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX = "ExpectedResult";
-    private List<MethodCapture> capturedData;
+public class MockTestConstructor implements TestConstructor {
+    private final List<MethodCapture> capturedData;
+    private final Class<?> testClass;
+    private final Constructor constructor;
+    private ConstructorConfiguration conf;
 
     public MockTestConstructor(Class<?> testClass,
-                               List<MethodCapture> capturedData,
-                               MethodCapture testableMethodCapture) {
-        super(testClass, testableMethodCapture);
+                               List<MethodCapture> capturedData) {
+        this.testClass = testClass;
+        final Constructor constructor = new Constructor(testClass, MethodCapture.testInvocation(capturedData));
+        this.constructor = constructor;
+        this.conf = constructor.configuration();
         this.capturedData = capturedData;
+    }
+
+    public TestConstructor configuration(ConstructorConfiguration conf) {
+        this.constructor.configuration(conf);
+        return this;
     }
 
     @Override
     public String construct() {
-        Method testMethod = testableMethodCapture.getMethod();
-        Object result = testableMethodCapture.getResult();
-        Object[] params = testableMethodCapture.getArguments();
         return new StringBuilder()
-                .append(generateTestAnnotation())
-                .append(generateTestMethodName(testMethod))
-                .append(generateClassCreation(testClass))
+                .append(constructor.generateTestAnnotation())
+                .append(constructor.generateTestMethodName())
+                .append(constructor.generateClassCreation())
                 .append("\n")
-                .append(createDependencyMocks(testClass))
-                .append(Comment.GIVEN.text())
-                .append(generateInputParams(testMethod, params))
+                .append(createDependencyMocks())
+                .append(Comment.GIVEN.text(conf.bodySpace()))
+                .append(constructor.generateInputParams())
                 .append("\n")
                 .append(generateMockDependencyInvocation())
                 .append("\n")
-                .append(Comment.WHEN.text())
-                .append(generateTestMethodInvocation(testMethod))
+                .append(Comment.WHEN.text(conf.bodySpace()))
+                .append(constructor.generateTestMethodInvocation())
                 .append("\n")
-                .append(Comment.THEN.text())
+                .append(Comment.THEN.text(conf.bodySpace()))
                 .append(generateMockMethodInvocationChecks())
                 .append("\n")
-                .append(generateResultToString(result))
-                .append(generateResultAssertToString())
-                .append(generateCloseBracket())
+                .append(constructor.generateResultToString())
+                .append(constructor.generateResultAssertToString())
+                .append(constructor.generateCloseBracket())
                 .toString();
     }
 
-    private String createDependencyMocks(Class testClass) {
+    private String createDependencyMocks() {
         return getClassFields(testClass).stream()
                 .filter(this::isaFieldNeededAProxy)
                 .map(this::createMockString)
@@ -77,15 +76,15 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
     private String createMockString(Field field) {
         final String typeName = field.getType().getTypeName();
         final String fieldName = field.getName();
-        final String fieldVariable = fieldName + MOCK_FIELD_VARIABLE_SUFFIX;
+        final String fieldVariable = fieldName + conf.MOCK_FIELD_VARIABLE_SUFFIX;
         return mockCreation(typeName, fieldName, fieldVariable);
     }
 
     private String mockCreation(String typeName, String fieldName, String fieldVariable) {
-        return bodySpace + typeName + " " + fieldName + " = " + MOCKITO_CLASS + ".mock(" + typeName + ".class);\n" +
-                bodySpace + "java.lang.reflect.Field " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
-                bodySpace + fieldVariable + ".setAccessible(true);\n" +
-                bodySpace + fieldVariable + ".set(testClass, " + fieldName + ");\n";
+        return conf.bodySpace() + typeName + " " + fieldName + " = " + conf.MOCKITO_CLASS + ".mock(" + typeName + ".class);\n" +
+                conf.bodySpace() + "java.lang.reflect.Field " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
+                conf.bodySpace() + fieldVariable + ".setAccessible(true);\n" +
+                conf.bodySpace() + fieldVariable + ".set(testClass, " + fieldName + ");\n";
     }
 
     private String generateMockDependencyInvocation() {
@@ -103,9 +102,9 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
 
     private String generateMockInvocationReturnValue(MethodCapture capture, int counter) {
         Object result = capture.getResult();
-        final String resultName = capture.methodName() + counter + MOCK_RESULT_VARIABLE_SUFFIX;
+        final String resultName = capture.methodName() + counter + conf.MOCK_RESULT_VARIABLE_SUFFIX;
         final String type = capture.getMethod().getGenericReturnType().getTypeName();
-        return generateObjectSerialization(result, resultName, type);
+        return constructor.generateObjectSerialization(result, resultName, type);
     }
 
     protected String generateCaptorPassedArgumentSerialization(MethodCapture methodCapture, int counter) {
@@ -115,29 +114,29 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
         for (int index = 0; index < methodParameters.size(); index++) {
             Parameter parameter = methodParameters.get(index);
             final String type = parameter.getParameterizedType().getTypeName();
-            final String parameterName = parameter.getName() + counter + MOCK_PARAMETER_VARIABLE_SUFFIX;
+            final String parameterName = parameter.getName() + counter + conf.MOCK_PARAMETER_VARIABLE_SUFFIX;
 
-            passedArguments.append(generateObjectSerialization(arguments[index], parameterName, type));
+            passedArguments.append(constructor.generateObjectSerialization(arguments[index], parameterName, type));
         }
         return passedArguments.toString();
     }
 
     private String generateMockConfiguration(MethodCapture capture, int counter) {
         String fieldMock = capture.getFieldName();
-        final String resultName = capture.methodName() + counter + MOCK_RESULT_VARIABLE_SUFFIX;
+        final String resultName = capture.methodName() + counter + conf.MOCK_RESULT_VARIABLE_SUFFIX;
         final String methodName = capture.methodName();
         String parametersArguments = generateCaptorPassedArgumentNames(capture.getMethod(), counter);
         return mockInvocation(fieldMock, resultName, methodName, parametersArguments);
     }
 
     private String mockInvocation(String fieldMock, String resultName, String methodName, String parametersArguments) {
-        return bodySpace + MOCKITO_CLASS + ".when(" + fieldMock + "." + methodName + "(" + parametersArguments + ")).thenReturn(" + resultName + ");\n";
+        return conf.bodySpace() + conf.MOCKITO_CLASS + ".when(" + fieldMock + "." + methodName + "(" + parametersArguments + ")).thenReturn(" + resultName + ");\n";
     }
 
     protected String generateCaptorPassedArgumentNames(Method method, int counter) {
         String params = getMethodParameters(method)
                 .stream()
-                .map(parameter -> parameter.getName() + counter + MOCK_PARAMETER_VARIABLE_SUFFIX)
+                .map(parameter -> parameter.getName() + counter + conf.MOCK_PARAMETER_VARIABLE_SUFFIX)
                 .map(parameterName -> parameterName + ",")
                 .collect(Collectors.joining());
         return "".equals(params) ? "" : params.substring(0, params.length() - 1);
@@ -161,12 +160,12 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
 
     private String createCaptors(MethodInvocation methodInvocation, String argumentName) {
         final String type = methodInvocation.argumentTypeName(argumentName);
-        String captor = methodInvocation.methodName() + argumentName + CAPTOR_VARIABLE_SUFFIX;
+        String captor = methodInvocation.methodName() + argumentName + conf.CAPTOR_VARIABLE_SUFFIX;
         return captorCreation(type, captor);
     }
 
     private String captorCreation(String type, String captor) {
-        return bodySpace + "final " + ARGUMENT_CAPTOR_CLASS + "<" + type + "> " + captor + " = " + ARGUMENT_CAPTOR_CLASS + ".forClass(" + type + ".class);\n";
+        return conf.bodySpace() + "final " + conf.ARGUMENT_CAPTOR_CLASS + "<" + type + "> " + captor + " = " + conf.ARGUMENT_CAPTOR_CLASS + ".forClass(" + type + ".class);\n";
     }
 
     private String createMockVerifyConfiguration(MethodInvocation methodInvocation) {
@@ -178,45 +177,45 @@ public class MockTestConstructor extends AbstractTestConstructor implements Test
     }
 
     private String mockVerification(String fieldMock, int invocationCount, String methodName, String captorArguments) {
-        return bodySpace + MOCKITO_CLASS + ".verify(" + fieldMock + ", " + MOCKITO_CLASS + ".times(" + invocationCount + "))." + methodName + "(" + captorArguments + ");\n";
+        return conf.bodySpace() + conf.MOCKITO_CLASS + ".verify(" + fieldMock + ", " + conf.MOCKITO_CLASS + ".times(" + invocationCount + "))." + methodName + "(" + captorArguments + ");\n";
     }
 
     private String createArgumentCollection(MethodInvocation methodInvocation, String argumentName) {
         final String variable = methodInvocation.methodName() + argumentName;
         final String type = methodInvocation.argumentTypeName(argumentName);
-        String captor = variable + CAPTOR_VARIABLE_SUFFIX;
-        String result = variable + CAPTOR_RESULT_VARIABLE_SUFFIX;
+        String captor = variable + conf.CAPTOR_VARIABLE_SUFFIX;
+        String result = variable + conf.CAPTOR_RESULT_VARIABLE_SUFFIX;
         return captorArgumentCollection(type, result, captor);
     }
 
     private String captorArgumentCollection(String type, String result, String captor) {
-        return bodySpace + "List<" + type + "> " + result + " = " + captor + ".getAllValues();\n";
+        return conf.bodySpace() + "List<" + type + "> " + result + " = " + captor + ".getAllValues();\n";
     }
 
     private String createExpectedResults(MethodInvocation methodInvocation, String argumentName) {
-        String result = methodInvocation.methodName() + argumentName + CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
+        String result = methodInvocation.methodName() + argumentName + conf.CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
         final String passedParameters = methodInvocation.getArgument(argumentName).toString();
         return captorExpectedResult(result, passedParameters);
     }
 
     private String captorExpectedResult(String result, String passedParameters) {
-        return bodySpace + "String " + result + " = \"" + passedParameters + "\";\n";
+        return conf.bodySpace() + "String " + result + " = \"" + passedParameters + "\";\n";
     }
 
     private String createMockAssertions(MethodInvocation methodInvocation, String argumentName) {
         final String variable = methodInvocation.methodName() + argumentName;
-        String result = variable + CAPTOR_RESULT_VARIABLE_SUFFIX;
-        String expectedResult = variable + CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
+        String result = variable + conf.CAPTOR_RESULT_VARIABLE_SUFFIX;
+        String expectedResult = variable + conf.CAPTOR_EXPECTED_RESULT_VARIABLE_SUFFIX;
         return mockAssertion(result, expectedResult);
     }
 
     private String mockAssertion(String result, String expectedResult) {
-        return bodySpace + ASSERT_CLASS + ".assertEquals(" + expectedResult + ", " + result + ".toString());\n";
+        return conf.bodySpace() + conf.assertionClass() + ".assertEquals(" + expectedResult + ", " + result + ".toString());\n";
     }
 
     private String generateCaptorArguments(Collection<String> argumentNames, String methodName) {
         final String params = argumentNames.stream()
-                .map(argumentName -> methodName + argumentName + CAPTOR_VARIABLE_SUFFIX + ".capture()")
+                .map(argumentName -> methodName + argumentName + conf.CAPTOR_VARIABLE_SUFFIX + ".capture()")
                 .reduce("", (acc, name) -> acc.concat(name + ","));
         return "".equals(params) ? "" : params.substring(0, params.length() - 1);
     }

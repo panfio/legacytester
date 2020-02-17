@@ -2,6 +2,7 @@ package ru.panfio.legacytester;
 
 import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
+import ru.panfio.legacytester.constructor.ConstructorConfiguration;
 import ru.panfio.legacytester.constructor.MockTestConstructor;
 import ru.panfio.legacytester.constructor.TestConstructor;
 import ru.panfio.legacytester.spring.MethodInvocationInterceptor;
@@ -23,9 +24,16 @@ public class LegacyTester {
     private final Class<?> testClass;
     private String qualifier = "default";
     private Map<String, FieldInvocationHandler> handlers = new HashMap<>();
+    private ConstructorConfiguration conf = new ConstructorConfiguration();
 
     public LegacyTester(Class<?> testClass) {
         this.testClass = testClass;
+    }
+
+    public LegacyTester constructorConfiguration(ConstructorConfiguration conf) {
+        this.conf = conf;
+        System.out.println("sssset conf " + conf);
+        return this;
     }
 
     public String getQualifier() {
@@ -91,9 +99,12 @@ public class LegacyTester {
             return;
         }
         List<MethodCapture> capturedData = collectCapturedData();
-        MethodCapture testableMethodCapture = new MethodCapture(testMethod, MethodCapture.Type.TEST, params, result);
-        TestConstructor constructor = new MockTestConstructor(testClass, capturedData, testableMethodCapture);
-        String testText = constructor.construct();
+        capturedData.add(new MethodCapture(testMethod, MethodCapture.Type.TEST, params, result));
+
+        System.out.println("leg tester " + qualifier);
+        System.out.println("leg tester " + conf);
+        final TestConstructor testConstructor = new MockTestConstructor(testClass, capturedData).configuration(conf);
+        String testText = testConstructor.construct();
         printGeneratedTest(testText);
     }
 

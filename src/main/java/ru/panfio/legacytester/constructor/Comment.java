@@ -15,8 +15,8 @@ public enum Comment {
         return text;
     }
 
-    public String text(int spaceBefore) {
-        return new String(new char[spaceBefore]).replace("\0", " ");
+    public String text(String before) {
+        return before + text.trim();
     }
 
 }
