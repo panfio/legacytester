@@ -1,5 +1,6 @@
 package ru.panfio.legacytester;
 
+import lombok.SneakyThrows;
 import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
 import ru.panfio.legacytester.constructor.ConstructorConfiguration;
@@ -14,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -32,7 +32,6 @@ public class LegacyTester {
 
     public LegacyTester constructorConfiguration(ConstructorConfiguration conf) {
         this.conf = conf;
-        System.out.println("sssset conf " + conf);
         return this;
     }
 
@@ -45,21 +44,25 @@ public class LegacyTester {
         return this;
     }
 
-    /**
-     * Tests a function with no return value.
-     * <pre>{@code
-     *    @Testee
-     *    public void process(Param param0);
-     * }</pre>
-     *
-     * @param params input parameters
-     */
+    @Deprecated
     public void test(Object[] params) {
-        generateTest(null, params);
+        generateTest(null, null, params);
     }
 
+    @Deprecated
     public void test(Object result, Object[] params) {
-        generateTest(result, params);
+        generateTest(result, null, params);
+    }
+
+    @SneakyThrows
+    public void test(ThrowableRunnable testMethod, Object... params) {
+        try {
+            testMethod.run();
+            generateTest(null, null, params);
+        } catch (Throwable exception) {
+            generateTest(null, exception, params);
+            throw exception;
+        }
     }
 
     /**
@@ -86,23 +89,33 @@ public class LegacyTester {
      * @param <R>        result type of a real function
      * @return result of a real function call
      */
-    public <R> R test(Supplier<R> testMethod, Object... params) {
-        R result = testMethod.get();
-        generateTest(result, params);
-        return result;
+    @SneakyThrows
+    public <R> R test(ThrowableSupplier<R> testMethod, Object... params) {
+        try {
+            R result = testMethod.get();
+            generateTest(result, null, params);
+            return result;
+        } catch (Throwable exception) {
+            generateTest(null, exception, params);
+            throw exception;
+        }
     }
 
-    private void generateTest(Object result, Object... params) {
+    private void generateTest(Object result, Throwable exception, Object... params) {
         Method testMethod = getTestableMethod();
         if (testMethod == null) {
             System.out.println("Please annotate testable method with @Testee");
             return;
         }
         List<MethodCapture> capturedData = collectCapturedData();
-        capturedData.add(new MethodCapture(testMethod, MethodCapture.Type.TEST, params, result));
-
-        System.out.println("leg tester " + qualifier);
-        System.out.println("leg tester " + conf);
+        capturedData.add(
+                MethodCapture.builder()
+                        .method(testMethod)
+                        .type(MethodCapture.Type.TEST)
+                        .arguments(params)
+                        .result(result)
+                        .exception(exception)
+                        .build());
         final TestConstructor testConstructor = new MockTestConstructor(testClass, capturedData).configuration(conf);
         String testText = testConstructor.construct();
         printGeneratedTest(testText);
@@ -140,11 +153,11 @@ public class LegacyTester {
 
     private void printGeneratedTest(String test) {
         String header =
-                        "//================================================================//\n" +
+                "//================================================================//\n" +
                         "//======================== GENERATED TEST ========================//\n" +
                         "//================================================================//\n";
         String footer =
-                        "//////////////////////////////// END ///////////////////////////////\n";
+                "//////////////////////////////// END ///////////////////////////////\n";
         System.out.println(header + test + "\n" + footer);
     }
 
@@ -170,8 +183,8 @@ public class LegacyTester {
      *     }
      * }</pre>
      *
-     * @param target      proxy target .class
-     * @param handler     invocation handler LegacyTesterProxy
+     * @param target          proxy target .class
+     * @param handler         invocation handler LegacyTesterProxy
      * @param otherInterfaces another interfaces for implementation
      * @param <T>
      * @return

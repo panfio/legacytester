@@ -1,5 +1,7 @@
 package ru.panfio.legacytester;
 
+import lombok.Builder;
+
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -15,14 +17,18 @@ public class MethodCapture {
     private final Type type;
     private final Object[] arguments;
     private final Object result;
+    private final Throwable exception;
 
     private String fieldName;
 
-    public MethodCapture(Method method, Type type, Object[] arguments, Object result) {
+    @Builder
+    public MethodCapture(Method method, Type type, Object[] arguments,
+                         Object result, Throwable exception) {
         this.method = method;
         this.type = type;
         this.arguments = arguments;
         this.result = result;
+        this.exception = exception;
     }
 
     public Method getMethod() {
@@ -49,11 +55,14 @@ public class MethodCapture {
         return fieldName;
     }
 
+    public Throwable getException() {
+        return exception;
+    }
+
     public MethodCapture setFieldName(String fieldName) {
         this.fieldName = fieldName;
         return this;
     }
-
 
     public static List<MethodCapture> dependenciesInvocations(List<MethodCapture> capturedData) {
         return capturedData.stream()

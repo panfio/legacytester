@@ -33,7 +33,6 @@ public class QualifierPure {
                         .assertionClass("org.junit.jupiter.api.Assertions"))
                 .test(() -> collectTracks(trackInfos, listenedTracks),
                         trackInfos, listenedTracks);
-        ;
         sendMessages(collectedTracks);
     }
 

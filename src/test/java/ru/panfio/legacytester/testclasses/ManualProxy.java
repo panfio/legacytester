@@ -27,8 +27,7 @@ public class ManualProxy {
     @Testee
     public void process() {
         tester.clearInvocations();
-        original();
-        tester.test(null);
+        tester.test(this::original, null);
     }
 
     private void original() {
@@ -53,8 +52,35 @@ public class ManualProxy {
         return collectedTracks;
     }
 
-    @Testee(qualifier = "constructMusic")
     private Music constructMusic(PlayHistory track, TrackInfo info) {
+        return Music.builder()
+                .id(track.getId())
+                .listenTime(track.getListenTime())
+                .externalId(info.getId())
+                .artist(info.getArtist())
+                .title(info.getTitle())
+                .url(info.getUrl())
+                .type(Music.Type.SOUNDCLOUD)
+                .build();
+    }
+
+
+    public void throwsException() {
+        Map<String, TrackInfo> trackInfos = getTrackInfos();
+
+        trackInfos.values().forEach(trackInfo -> {
+            new LegacyTester(ManualProxy.class)
+                    .qualifier("throwsException")
+                    .test(() -> throwsException(null, trackInfo),
+                            null, trackInfo);
+        });
+    }
+
+    @Testee(qualifier = "throwsException")
+    private Music throwsException(PlayHistory track, TrackInfo info) {
+        if (info.getArtist().length() < 7) {
+            throw new NullPointerException("my message");
+        }
         return Music.builder()
                 .id(track.getId())
                 .listenTime(track.getListenTime())

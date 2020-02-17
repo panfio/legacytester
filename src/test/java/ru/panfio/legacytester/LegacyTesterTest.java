@@ -35,4 +35,11 @@ public class LegacyTesterTest {
         ManualProxy service = new ManualProxy(messageBus, soundCloudDao);
         service.process();
     }
+
+    @Test
+    void throwsException() {
+        ManualProxy service = new ManualProxy(messageBus, soundCloudDao);
+        service.throwsException();
+//        Assertions.assertThrows(IllegalArgumentException.class, () -> service.throwsException());
+    }
 }

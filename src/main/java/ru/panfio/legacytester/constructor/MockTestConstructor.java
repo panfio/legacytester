@@ -53,7 +53,7 @@ public class MockTestConstructor implements TestConstructor {
                 .append(generateMockMethodInvocationChecks())
                 .append("\n")
                 .append(constructor.generateResultToString())
-                .append(constructor.generateResultAssertToString())
+                .append(constructor.generateAssertions())
                 .append(constructor.generateCloseBracket())
                 .toString();
     }

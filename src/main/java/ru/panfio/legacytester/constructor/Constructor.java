@@ -51,7 +51,7 @@ public class Constructor {
 
     protected String generateTestMethodName() {
         String originalMethodName = testMethodCapture.methodName();
-        int id = (int) (Math.random()*100000);
+        int id = (int) (Math.random() * 100000);
         return conf.signatureSpace() + "public void " + originalMethodName + conf.TEST_METHOD_NAME_SUFFIX + id + "()" + generateThrowsDeclaration() + "{\n";
     }
 
@@ -95,7 +95,56 @@ public class Constructor {
     }
 
 
-    protected String generateParameterClasses(Method method) {
+    protected String generateTestMethodInvocation() {
+        if (Modifier.isPrivate(testMethodCapture.getMethod().getModifiers())) {
+            return privateMethodInvocation();
+        }
+        return publicMethodInvocation();
+    }
+
+    private String publicMethodInvocation() {
+        Method testMethod = testMethodCapture.getMethod();
+        String methodName = testMethod.getName();
+        String returnType = getmethodReturnType(testMethod);
+        String params = generateArguments(testMethod);
+        if (testMethodCapture.getException() != null) {
+            String exceptionType = testMethodCapture.getException().getClass().getTypeName();
+            return conf.bodySpace() + conf.assertionClass() + ".assertThrows(" + exceptionType + ".class, () -> testClass." + testMethodCapture.getMethod().getName() + "(" + params + "));\n";
+        }
+        if ("void".equals(returnType)) {
+            return conf.bodySpace() + "testClass." + methodName + "(" + params + ");\n";
+        }
+        return conf.bodySpace() + returnType + " result = testClass." + methodName + "(" + params + ");\n";
+    }
+
+    private String privateMethodInvocation() {
+        Method testMethod = testMethodCapture.getMethod();
+        String methodName = testMethod.getName();
+        String returnType = getmethodReturnType(testMethod);
+        String params = generateArguments(testMethod);
+        final String parameterClasses = generateParameterClasses(testMethod);
+        String methodConfiguration = setMethodAccessible(methodName, parameterClasses);
+        if (testMethodCapture.getException() != null) {
+            String exceptionType = testMethodCapture.getException().getClass().getTypeName();
+            return methodConfiguration + conf.bodySpace() + conf.assertionClass() + ".assertThrows(" + exceptionType + ".class, () -> {try{" + testMethodCapture.getMethod().getName() + ".invoke(testClass, " + params + ");} catch (java.lang.reflect.InvocationTargetException e) {throw e.getCause();}});\n";
+        }
+        if ("void".equals(returnType)) {
+            return conf.bodySpace() + "testClass." + methodName + "(" + params + ");\n";
+        }
+        return methodConfiguration + invokePrivateMethod(returnType + " result = (" + returnType + ") ", methodName, params);
+    }
+
+    private String setMethodAccessible(String methodName, String parameterClasses) {
+        return conf.bodySpace() + "java.lang.reflect.Method " + methodName + " = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
+                conf.bodySpace() + methodName + ".setAccessible(true);\n";
+
+    }
+
+    private String invokePrivateMethod(String result, String methodName, String params) {
+        return conf.bodySpace() + result + methodName + ".invoke(testClass, " + params + ");\n";
+    }
+
+    private String generateParameterClasses(Method method) {
         final List<String> parameterTypes = getParameterTypes(method);
         final String params = parameterTypes.stream()
                 .map(argumentType -> argumentType + ".class")
@@ -103,30 +152,10 @@ public class Constructor {
         return "".equals(params) ? "" : params.substring(0, params.length() - 1);
     }
 
-    // TODO refactor
-    protected String generateTestMethodInvocation() {
-        Method testMethod = testMethodCapture.getMethod();
-        String methodName = testMethod.getName();
-        String returnType = getmethodReturnType(testMethod);
-        String params = generateArguments(testMethod);
-        final String parameterClasses = generateParameterClasses(testMethod);
-        if ("void".equals(returnType)) {
-            if (Modifier.isPrivate(testMethod.getModifiers())) {
-                return conf.bodySpace() + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
-                        conf.bodySpace() + "method.setAccessible(true);\n" +
-                        conf.bodySpace() + "method.invoke(testClass, " + params + ");\n";
-            }
-            return conf.bodySpace() + "testClass." + methodName + "(" + params + ");\n";
-        }
-        if (Modifier.isPrivate(testMethod.getModifiers())) {
-            return conf.bodySpace() + "java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
-                    conf.bodySpace() + "method.setAccessible(true);\n" +
-                    conf.bodySpace() + returnType + " result = (" + returnType + ") method.invoke(testClass, " + params + ");\n";
-        }
-        return conf.bodySpace() + returnType + " result = testClass." + methodName + "(" + params + ");\n";
-    }
-
     protected String generateResultToString() {
+        if (testMethodCapture.getException() != null) {
+            return "";
+        }
         Object expectedResult = testMethodCapture.getResult();
         if (isVoidReturnType()) {
             return "";
@@ -140,6 +169,14 @@ public class Constructor {
 
     private boolean isVoidReturnType() {
         return "void".equals(testMethodCapture.getMethod().getGenericReturnType().getTypeName());
+    }
+
+    protected String generateAssertions() {
+        final Throwable exception = testMethodCapture.getException();
+        if (exception != null) {
+            return generateResultAssertToString();
+        }
+        return "";
     }
 
     protected String generateResultAssertToString() {

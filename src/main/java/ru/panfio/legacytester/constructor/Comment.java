@@ -16,7 +16,7 @@ public enum Comment {
     }
 
     public String text(String before) {
-        return before + text.trim();
+        return before + text.trim() + "\n";
     }
 
 }

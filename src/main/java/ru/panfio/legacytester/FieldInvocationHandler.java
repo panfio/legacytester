@@ -1,5 +1,7 @@
 package ru.panfio.legacytester;
 
+import lombok.SneakyThrows;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -11,6 +13,7 @@ public class FieldInvocationHandler implements InvocationHandler {
 
     private final List<String> affectedMethods;
     private List<MethodCapture> capturedInvocations = new ArrayList<>();
+
     public FieldInvocationHandler(Object target,
                                   String... affectedMethods) {
         this.target = target;
@@ -35,16 +38,30 @@ public class FieldInvocationHandler implements InvocationHandler {
     }
 
     @Override
+    @SneakyThrows
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         Object result = method.invoke(target, args);
-
+        //todo catch mock exceptions
         final String methodName = method.getName();
         if (affectedMethods.contains(methodName)) {
-            capturedInvocations.add(new MethodCapture(method, MethodCapture.Type.AFFECT, args, result));
+            capturedInvocations.add(
+                    MethodCapture.builder()
+                            .method(method)
+                            .type(MethodCapture.Type.AFFECT)
+                            .arguments(args)
+                            .result(result)
+                            .exception(null)
+                            .build());
             return result;
         }
-
-        capturedInvocations.add(new MethodCapture(method, MethodCapture.Type.DEPENDENCY, args, result));
+        capturedInvocations.add(
+                MethodCapture.builder()
+                        .method(method)
+                        .type(MethodCapture.Type.DEPENDENCY)
+                        .arguments(args)
+                        .result(result)
+                        .exception(null)
+                        .build());
         return result;
     }
 }
