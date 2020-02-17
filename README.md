@@ -113,8 +113,8 @@ public void processTest777() throws NoSuchFieldException, IllegalAccessException
     testClass.process();
 
     //Then
-    final Mockito<String> sendAllarg0Captor = Mockito.forClass(String.class);
-    final Mockito<ArrayList> sendAllarg1Captor = Mockito.forClass(ArrayList.class);
+    final ArgumentCaptor<String> sendAllarg0Captor = ArgumentCaptor.forClass(String.class);
+    final ArgumentCaptor<ArrayList> sendAllarg1Captor = ArgumentCaptor.forClass(ArrayList.class);
     Mockito.verify(messageBus, Mockito.times(1)).sendAll(sendAllarg0Captor.capture(),sendAllarg1Captor.capture());
     List<String> sendAllarg0Result = sendAllarg0Captor.getAllValues();
     List<ArrayList> sendAllarg1Result = sendAllarg1Captor.getAllValues();

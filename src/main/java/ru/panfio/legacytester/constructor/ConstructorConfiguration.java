@@ -70,7 +70,7 @@ public class ConstructorConfiguration {
     }
 
     public String captorClass() {
-        return isVerboseType(MOCKITO_CLASS);
+        return isVerboseType(ARGUMENT_CAPTOR_CLASS);
     }
 
     private String isVerboseType(String type) {

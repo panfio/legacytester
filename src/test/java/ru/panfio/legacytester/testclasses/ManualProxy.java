@@ -18,13 +18,15 @@ import java.util.List;
 import java.util.Map;
 
 public class ManualProxy {
-    public LegacyTester tester;
+    public LegacyTester tester = new LegacyTester(ManualProxy.class);
     MessageBus messageBus;
     SoundCloudDao soundCloudDao;
 
     public ManualProxy(MessageBus messageBus, SoundCloudDao soundCloudDao) {
-        this.messageBus = messageBus;//tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "sendAll").setFieldName("messageBus"));
-        this.soundCloudDao = soundCloudDao;//tester.createFieldProxy(SoundCloudDao.class, new FieldInvocationHandler(soundCloudDao).setFieldName("soundCloudDao"));
+//        this.messageBus = tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "sendAll").setFieldName("messageBus"));
+//        this.soundCloudDao = tester.createFieldProxy(SoundCloudDao.class, new FieldInvocationHandler(soundCloudDao).setFieldName("soundCloudDao"));
+        this.messageBus = messageBus;
+        this.soundCloudDao = soundCloudDao;
     }
 
     public void setTester() {

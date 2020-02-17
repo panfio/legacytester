@@ -75,8 +75,8 @@ public class LegacyTesterTest {
                         "        testClass.process();\n" +
                         "\n" +
                         "        //Then\n" +
-                        "        final Mockito<String> sendAllarg0Captor = Mockito.forClass(String.class);\n" +
-                        "        final Mockito<ArrayList> sendAllarg1Captor = Mockito.forClass(ArrayList.class);\n" +
+                        "        final ArgumentCaptor<String> sendAllarg0Captor = ArgumentCaptor.forClass(String.class);\n" +
+                        "        final ArgumentCaptor<ArrayList> sendAllarg1Captor = ArgumentCaptor.forClass(ArrayList.class);\n" +
                         "        Mockito.verify(messageBus, Mockito.times(1)).sendAll(sendAllarg0Captor.capture(),sendAllarg1Captor.capture());\n" +
                         "        List<String> sendAllarg0Result = sendAllarg0Captor.getAllValues();\n" +
                         "        List<ArrayList> sendAllarg1Result = sendAllarg1Captor.getAllValues();\n" +
