@@ -1,6 +1,7 @@
 package ru.panfio.legacytester.testclasses;
 
 
+import org.junit.jupiter.api.Assertions;
 import ru.panfio.legacytester.FieldInvocationHandler;
 import ru.panfio.legacytester.LegacyTester;
 import ru.panfio.legacytester.Testee;
@@ -17,11 +18,16 @@ import java.util.List;
 import java.util.Map;
 
 public class ManualProxy {
-    private static LegacyTester tester = new LegacyTester(ManualProxy.class);
+    public LegacyTester tester;
     MessageBus messageBus;
     SoundCloudDao soundCloudDao;
 
     public ManualProxy(MessageBus messageBus, SoundCloudDao soundCloudDao) {
+        this.messageBus = messageBus;//tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "sendAll").setFieldName("messageBus"));
+        this.soundCloudDao = soundCloudDao;//tester.createFieldProxy(SoundCloudDao.class, new FieldInvocationHandler(soundCloudDao).setFieldName("soundCloudDao"));
+    }
+
+    public void setTester() {
         this.messageBus = tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "sendAll").setFieldName("messageBus"));
         this.soundCloudDao = tester.createFieldProxy(SoundCloudDao.class, new FieldInvocationHandler(soundCloudDao).setFieldName("soundCloudDao"));
     }
@@ -75,7 +81,8 @@ public class ManualProxy {
                     .qualifier("throwsException")
                     .testSupplier(MockTestConstructor::new)
                     .testHandler(test -> System.out.println(test
-                            .configuration(new ConstructorConfiguration().signatureSpace("  ").bodySpace("    "))
+                            .configuration(
+                                    new ConstructorConfiguration().assertionClass(Assertions.class))
                             .construct()))
                     .test(() -> throwsException(null, trackInfo), null, trackInfo);
         });
