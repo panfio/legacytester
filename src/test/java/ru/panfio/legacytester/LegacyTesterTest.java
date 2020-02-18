@@ -41,13 +41,14 @@ public class LegacyTesterTest {
         List<String> generatedTest = new ArrayList<>();
         ManualProxy service = new ManualProxy(messageBus, soundCloudDao);
         service.tester = new LegacyTester(ManualProxy.class)
-                .testSupplier(MockTestConstructor::new)
-                .testHandler(test -> generatedTest.add(test
-                        .configuration(new ConstructorConfiguration()
+                .testConstructor(MockTestConstructor::new)
+                .constructorConfig(() ->
+                        ConstructorConfiguration.builder()
                                 .verbose(false)
                                 .testMethodNameGenerator(method -> method.getName() + "Test777")
-                                .assertionClass(Assertions.class))
-                        .construct()));
+                                .assertionClass(Assertions.class)
+                                .build())
+                .testHandler(test -> generatedTest.add(test.construct()));
         service.setTester();
         service.tester.test(service::process, null);
         Assertions.assertEquals(
@@ -67,9 +68,9 @@ public class LegacyTesterTest {
                         "        //Given\n" +
                         "\n" +
                         "        Map<String, TrackInfo> tracksInfo0ResultInvocation = JsonUtils.parse(\"{\\\"732251920\\\":{\\\"id\\\":\\\"732251920\\\",\\\"artist\\\":\\\"Vesky\\\",\\\"title\\\":\\\"Leaving\\\",\\\"url\\\":\\\"https://soundcloud.com/vskymusic/leaving\\\"},\\\"746114746\\\":{\\\"id\\\":\\\"746114746\\\",\\\"artist\\\":\\\"vibe.digital\\\",\\\"title\\\":\\\"Episode 062 - A Look Forward at 2020\\\",\\\"url\\\":\\\"https://soundcloud.com/vibe-digital/episode062\\\"},\\\"745949599\\\":{\\\"id\\\":\\\"745949599\\\",\\\"artist\\\":\\\"-Bucky-\\\",\\\"title\\\":\\\"Bucky - Night Racer\\\",\\\"url\\\":\\\"https://soundcloud.com/bucky-music/bucky-night-racer\\\"}}\", new TypeReference<Map<String, TrackInfo>>() {});\n" +
-                        "        org.mockito.Mockito.when(soundCloudDao.tracksInfo()).thenReturn(tracksInfo0ResultInvocation);\n" +
+                        "        Mockito.when(soundCloudDao.tracksInfo()).thenReturn(tracksInfo0ResultInvocation);\n" +
                         "        List<PlayHistory> recentlyPlayed1ResultInvocation = JsonUtils.parse(\"[{\\\"id\\\":1579856369307,\\\"externalId\\\":\\\"732251920\\\",\\\"listenTime\\\":\\\"2020-01-24T08:59:29.307Z\\\"},{\\\"id\\\":1579856079704,\\\"externalId\\\":\\\"745949599\\\",\\\"listenTime\\\":\\\"2020-01-24T08:54:39.704Z\\\"},{\\\"id\\\":1579855591640,\\\"externalId\\\":\\\"746114746\\\",\\\"listenTime\\\":\\\"2020-01-24T08:46:31.640Z\\\"}]\", new TypeReference<List<PlayHistory>>() {});\n" +
-                        "        org.mockito.Mockito.when(soundCloudDao.recentlyPlayed()).thenReturn(recentlyPlayed1ResultInvocation);\n" +
+                        "        Mockito.when(soundCloudDao.recentlyPlayed()).thenReturn(recentlyPlayed1ResultInvocation);\n" +
                         "\n" +
                         "        //When\n" +
                         "        testClass.process();\n" +

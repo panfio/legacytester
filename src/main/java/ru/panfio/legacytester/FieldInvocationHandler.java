@@ -1,10 +1,10 @@
 package ru.panfio.legacytester;
 
-import lombok.SneakyThrows;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class FieldInvocationHandler implements InvocationHandler {
     private final Object target;
@@ -38,7 +38,6 @@ public class FieldInvocationHandler implements InvocationHandler {
     }
 
     @Override
-    @SneakyThrows
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         Object result = method.invoke(target, args);
         //todo catch mock exceptions

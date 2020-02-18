@@ -92,7 +92,7 @@ This creates a test method that you can find in the application log. Just copy a
 @Test
 public void processTest777() throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, java.lang.reflect.InvocationTargetException {
     //Please create a test class manually if necessary
-    ManualProxy testClass = new ManualProxy(null,null);
+    MusicService testClass = new MusicService(null,null);
 
     MessageBus messageBus = Mockito.mock(MessageBus.class);
     Field messageBusField = testClass.getClass().getDeclaredField("messageBus");
@@ -183,21 +183,21 @@ LegacyTester can generate a test even for a private functions.
 
 ```java
 @Test
-public void constructMusicTest() throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+public void constructMusicTest66121() throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, java.lang.reflect.InvocationTargetException {
     //Please create a test class manually if necessary
-    ru.panfio.telescreen.handler.service.MusicService testClass = new ru.panfio.telescreen.handler.service.MusicService();
+    MusicService testClass = new MusicService(null,null);
 
     //Given
-    ru.panfio.telescreen.handler.model.soundcloud.PlayHistory track = ru.panfio.legacytester.util.JsonUtils.parse("{\"id\":1579855591640,\"externalId\":\"746114746\",\"listenTime\":\"2020-01-24T08:46:31.640Z\"}", new com.fasterxml.jackson.core.type.TypeReference<ru.panfio.telescreen.handler.model.soundcloud.PlayHistory>() {});
-    ru.panfio.telescreen.handler.model.soundcloud.TrackInfo info = ru.panfio.legacytester.util.JsonUtils.parse("{\"id\":\"746114746\",\"artist\":\"vibe.digital\",\"title\":\"Episode 062 - A Look Forward at 2020\",\"url\":\"https://soundcloud.com/vibe-digital/episode062\"}", new com.fasterxml.jackson.core.type.TypeReference<ru.panfio.telescreen.handler.model.soundcloud.TrackInfo>() {});
+    PlayHistory arg0 = JsonUtils.parse("{\"id\":1579856369307,\"externalId\":\"732251920\",\"listenTime\":\"2020-01-24T08:59:29.307Z\"}", new TypeReference<PlayHistory>() {});
+    TrackInfo arg1 = JsonUtils.parse("{\"id\":\"732251920\",\"artist\":\"Vesky\",\"title\":\"Leaving\",\"url\":\"https://soundcloud.com/vskymusic/leaving\"}", new TypeReference<TrackInfo>() {});
 
     //When
-    java.lang.reflect.Method method = testClass.getClass().getDeclaredMethod("constructMusic", ru.panfio.telescreen.handler.model.soundcloud.PlayHistory.class,ru.panfio.telescreen.handler.model.soundcloud.TrackInfo.class);
-    method.setAccessible(true);
-    ru.panfio.telescreen.handler.model.Music result = (ru.panfio.telescreen.handler.model.Music) method.invoke(testClass, track,info);
+    Method constructMusic = testClass.getClass().getDeclaredMethod("constructMusic", PlayHistory.class,TrackInfo.class);
+    constructMusic.setAccessible(true);
+    Class result = (Class) constructMusic.invoke(testClass, arg0,arg1);
 
     //Then
-    String expectedResult = "Music{id=1579855591640, externalId='746114746', type=SOUNDCLOUD, artist='vibe.digital', title='Episode 062 - A Look Forward at 2020', listenTime=2020-01-24T08:46:31.640Z, url='https://soundcloud.com/vibe-digital/episode062'}";
-    org.junit.Assert.assertEquals(expectedResult, result.toString());
+    String expectedResult = "Music{id=1579856369307, externalId='732251920', type=SOUNDCLOUD, artist='Vesky', title='Leaving', listenTime=2020-01-24T08:59:29.307Z, url='https://soundcloud.com/vskymusic/leaving'}";
+    Assertions.assertEquals(expectedResult, result.toString());
 }
 ```

@@ -7,8 +7,6 @@ import ru.panfio.legacytester.Testee;
 
 import java.lang.reflect.Method;
 
-import static ru.panfio.legacytester.util.ReflectionUtils.getmethodReturnType;
-
 public class MethodInvocationInterceptor implements MethodInterceptor {
 
     private final Object target;
@@ -24,18 +22,8 @@ public class MethodInvocationInterceptor implements MethodInterceptor {
         if (method.isAnnotationPresent(Testee.class)) {
             Testee testeeAnnotation = method.getAnnotation(Testee.class);
             if (testeeAnnotation.qualifier().equals(legacyTester.getQualifier())) {
-                String returnType = getmethodReturnType(method);
-                if ("void".equals(returnType)) {
-                    legacyTester.clearInvocations();
-                    Object result = method.invoke(target, params);
-                    legacyTester.test(params);
-                    return result;
-                } else {
-                    legacyTester.clearInvocations();
-                    Object result = method.invoke(target, params);
-                    legacyTester.test(result, params);
-                    return result;
-                }
+                legacyTester.clearInvocations();
+                return legacyTester.test(() -> method.invoke(target, params), params);
             }
         }
         return method.invoke(target, params);

@@ -27,21 +27,15 @@ public class Constructor {
             "byte", "short", "int", "long", "float", "double", "boolean", "char",
             "byte[]", "short[]", "int[]", "long[]", "float[]", "double[]", "boolean[]", "char[]"));
     private final Class<?> testClass;
+    private final ConstructorConfiguration conf;
     private final MethodCapture testMethodCapture;
-    private ConstructorConfiguration conf = new ConstructorConfiguration();
 
-    public Constructor(Class<?> testClass, MethodCapture testMethodCapture) {
+    public Constructor(Class<?> testClass,
+                       ConstructorConfiguration conf,
+                       MethodCapture testMethodCapture) {
         this.testClass = testClass;
-        this.testMethodCapture = testMethodCapture;
-    }
-
-    public ConstructorConfiguration configuration() {
-        return conf;
-    }
-
-    public Constructor configuration(ConstructorConfiguration conf) {
         this.conf = conf;
-        return this;
+        this.testMethodCapture = testMethodCapture;
     }
 
     protected static boolean isIsaSerializableType(String type) {
@@ -53,22 +47,22 @@ public class Constructor {
     }
 
     protected String generateTestAnnotation() {
-        return conf.signatureSpace() + "@Test\n";
+        return conf.getSignatureSpace() + "@Test\n";
     }
 
     protected String generateTestMethodName() {
-        String methodName = conf.testMethodNameGenerator().apply(testMethodCapture.getMethod());
-        return conf.signatureSpace() + "public void " + methodName + "()" + generateThrowsDeclaration() + "{\n";
+        String methodName = conf.getTestMethodNameGenerator().apply(testMethodCapture.getMethod());
+        return conf.getSignatureSpace() + "public void " + methodName + "()" + generateThrowsDeclaration() + "{\n";
     }
 
     protected String generateCloseBracket() {
-        return conf.signatureSpace() + "}";
+        return conf.getSignatureSpace() + "}";
     }
 
     protected String generateClassCreation() {
         final String constructorArguments = repeatArguments(getConstructorArguments(testClass), "null");
-        return conf.bodySpace() + "//Please create a test class manually if necessary\n" +
-                conf.bodySpace() + conf.type(testClass) + " testClass = new " + conf.type(testClass) + "(" + constructorArguments + ");\n";
+        return conf.getBodySpace() + "//Please create a test class manually if necessary\n" +
+                conf.getBodySpace() + conf.type(testClass) + " testClass = new " + conf.type(testClass) + "(" + constructorArguments + ");\n";
     }
 
     protected String generateInputParams() {
@@ -91,11 +85,11 @@ public class Constructor {
     protected String generateObjectSerialization(Object value, String name, String type) {
         if (isIsaSerializableType(type) && Serializable.class.isAssignableFrom(value.getClass())) {
             String serVal = serializeToString((Serializable) value);
-            return conf.bodySpace() + "//Original value: " + commentLineBreaks(value.toString()) + "\n" +
-                    conf.bodySpace() + type + " " + name + " = (" + type + ") " + conf.type(SerializableUtils.class) + ".serializeFromString(\"" + serVal + "\");\n";
+            return conf.getBodySpace() + "//Original value: " + commentLineBreaks(value.toString()) + "\n" +
+                    conf.getBodySpace() + type + " " + name + " = (" + type + ") " + conf.type(SerializableUtils.class) + ".serializeFromString(\"" + serVal + "\");\n";
         }
         final String jsonValue = toJson(value);
-        return conf.bodySpace() + type + " " + name + " = " + conf.type(JsonUtils.class) + ".parse(\"" + escapeQuotes(jsonValue) + "\", new " + conf.type(TypeReference.class) + "<" + type + ">() {});\n";
+        return conf.getBodySpace() + type + " " + name + " = " + conf.type(JsonUtils.class) + ".parse(\"" + escapeQuotes(jsonValue) + "\", new " + conf.type(TypeReference.class) + "<" + type + ">() {});\n";
     }
 
 
@@ -113,12 +107,12 @@ public class Constructor {
         String params = generateArguments(testMethod);
         if (testMethodCapture.getException() != null) {
             String exceptionType = testMethodCapture.getException().getClass().getTypeName();
-            return conf.bodySpace() + conf.assertionClass() + ".assertThrows(" + exceptionType + ".class, () -> testClass." + testMethodCapture.getMethod().getName() + "(" + params + "));\n";
+            return conf.getBodySpace() + conf.getAssertion() + ".assertThrows(" + exceptionType + ".class, () -> testClass." + testMethodCapture.getMethod().getName() + "(" + params + "));\n";
         }
         if (isVoidReturnType()) {
-            return conf.bodySpace() + "testClass." + methodName + "(" + params + ");\n";
+            return conf.getBodySpace() + "testClass." + methodName + "(" + params + ");\n";
         }
-        return conf.bodySpace() + returnType + " result = testClass." + methodName + "(" + params + ");\n";
+        return conf.getBodySpace() + returnType + " result = testClass." + methodName + "(" + params + ");\n";
     }
 
     private String privateMethodInvocation() {
@@ -130,28 +124,28 @@ public class Constructor {
         String methodConfiguration = setMethodAccessible(methodName, parameterClasses);
         if (testMethodCapture.getException() != null) {
             String exceptionType = testMethodCapture.getException().getClass().getTypeName();
-            return methodConfiguration + conf.bodySpace() + conf.assertionClass() + ".assertThrows(" + exceptionType + ".class, () -> {try{" + testMethodCapture.getMethod().getName() + ".invoke(testClass, " + params + ");} catch (" + conf.type(InvocationTargetException.class)+ " e) {throw e.getCause();}});\n";
+            return methodConfiguration + conf.getBodySpace() + conf.getAssertion() + ".assertThrows(" + exceptionType + ".class, () -> {try{" + testMethodCapture.getMethod().getName() + ".invoke(testClass, " + params + ");} catch (" + conf.type(InvocationTargetException.class)+ " e) {throw e.getCause();}});\n";
         }
         if (isVoidReturnType()) {
-            return conf.bodySpace() + "testClass." + methodName + "(" + params + ");\n";
+            return conf.getBodySpace() + "testClass." + methodName + "(" + params + ");\n";
         }
         return methodConfiguration + invokePrivateMethod(returnType + " result = (" + returnType + ") ", methodName, params);
     }
 
     private String setMethodAccessible(String methodName, String parameterClasses) {
-        return conf.bodySpace() + conf.type(Method.class) + " " + methodName + " = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
-                conf.bodySpace() + methodName + ".setAccessible(true);\n";
+        return conf.getBodySpace() + conf.type(Method.class) + " " + methodName + " = testClass.getClass().getDeclaredMethod(\"" + methodName + "\", " + parameterClasses + ");\n" +
+                conf.getBodySpace() + methodName + ".setAccessible(true);\n";
 
     }
 
     private String invokePrivateMethod(String result, String methodName, String params) {
-        return conf.bodySpace() + result + methodName + ".invoke(testClass, " + params + ");\n";
+        return conf.getBodySpace() + result + methodName + ".invoke(testClass, " + params + ");\n";
     }
 
     private String generateParameterClasses(Method method) {
         final List<Parameter> parameterTypes = getMethodParameters(method);
         final String params = parameterTypes.stream()
-                .map(parameter -> conf.type(parameter))
+                .map(conf::type)
                 .map(argumentType -> argumentType + ".class")
                 .reduce("", (acc, name) -> acc.concat(name + ","));
         return "".equals(params) ? "" : params.substring(0, params.length() - 1);
@@ -166,9 +160,9 @@ public class Constructor {
             return "";
         }
         if (expectedResult == null) {
-            return conf.bodySpace() + "String expectedResult = " + null + ";\n";
+            return conf.getBodySpace() + "String expectedResult = " + null + ";\n";
         } else {
-            return conf.bodySpace() + "String expectedResult = \"" + escapeQuotes(expectedResult.toString()) + "\";\n";
+            return conf.getBodySpace() + "String expectedResult = \"" + escapeQuotes(expectedResult.toString()) + "\";\n";
         }
     }
 
@@ -188,7 +182,7 @@ public class Constructor {
         if (isVoidReturnType()) {
             return "";
         }
-        return conf.bodySpace() + conf.assertionClass() + ".assertEquals(expectedResult, result.toString());\n";
+        return conf.getBodySpace() + conf.getAssertion() + ".assertEquals(expectedResult, result.toString());\n";
     }
 
     protected static String repeatArguments(int count, String argumentName) {

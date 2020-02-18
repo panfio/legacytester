@@ -1,16 +1,20 @@
 package ru.panfio.legacytester;
 
-import lombok.Builder;
-
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * Container for storing method invocation data.
  */
 public class MethodCapture {
+    public static MethodCaptureBuilder builder() {
+        return new MethodCaptureBuilder();
+    }
+
     public enum Type {DEPENDENCY, AFFECT, TEST}
 
     private final Method method;
@@ -21,7 +25,6 @@ public class MethodCapture {
 
     private String fieldName;
 
-    @Builder
     public MethodCapture(Method method, Type type, Object[] arguments,
                          Object result, Throwable exception) {
         this.method = method;
@@ -82,6 +85,19 @@ public class MethodCapture {
                 .findFirst().orElse(null);
     }
 
+    public static List<MethodCapture> collectFrom(Map<String, FieldInvocationHandler> handlers) {
+        List<MethodCapture> capturedData = new ArrayList<>();
+        for (Map.Entry<String, FieldInvocationHandler> entry : handlers.entrySet()) {
+            List<MethodCapture> data = entry.getValue()
+                    .getCapturedInvocations()
+                    .stream()
+                    .map(methodCapture -> methodCapture.setFieldName(entry.getKey()))
+                    .collect(Collectors.toList());
+            capturedData.addAll(data);
+        }
+        return capturedData;
+    }
+
     @Override
     public String toString() {
         return "MethodCapture{" +
@@ -91,5 +107,53 @@ public class MethodCapture {
                 ", result=" + result +
                 ", fieldName='" + fieldName + '\'' +
                 '}';
+    }
+
+    public static class MethodCaptureBuilder {
+        private Method method;
+        private Type type;
+        private Object[] arguments;
+        private Object result;
+        private Throwable exception;
+
+        MethodCaptureBuilder() {
+        }
+
+        public MethodCaptureBuilder method(Method method) {
+            this.method = method;
+            return this;
+        }
+
+        public MethodCaptureBuilder type(Type type) {
+            this.type = type;
+            return this;
+        }
+
+        public MethodCaptureBuilder arguments(Object[] arguments) {
+            this.arguments = arguments;
+            return this;
+        }
+
+        public MethodCaptureBuilder result(Object result) {
+            this.result = result;
+            return this;
+        }
+
+        public MethodCaptureBuilder exception(Throwable exception) {
+            this.exception = exception;
+            return this;
+        }
+
+        public MethodCapture build() {
+            return new MethodCapture(method, type, arguments, result, exception);
+        }
+
+        public String toString() {
+            return "MethodCapture.MethodCaptureBuilder(method=" + this.method +
+                    ", type=" + this.type +
+                    ", arguments=" + Arrays.deepToString(this.arguments) +
+                    ", result=" + this.result +
+                    ", exception=" + this.exception + ")";
+        }
     }
 }

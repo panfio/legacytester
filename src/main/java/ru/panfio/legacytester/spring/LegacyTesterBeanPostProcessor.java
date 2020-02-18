@@ -39,15 +39,15 @@ public class LegacyTesterBeanPostProcessor {
                 String[] affectedMethods = extractAffectedMethods(field);
                 if (affectedMethods == null || affectedMethods.length == 0) {
                     // TODO replace with cglib proxy
-                    field.set(bean, tester.createFieldProxy(fieldClass, new FieldInvocationHandler(target).setFieldName(fieldName), fieldClass));
+                    field.set(bean, tester.fieldProxy(fieldClass, new FieldInvocationHandler(target).setFieldName(fieldName), fieldClass));
                 } else {
-                    field.set(bean, tester.createFieldProxy(fieldClass, new FieldInvocationHandler(target, affectedMethods).setFieldName(fieldName), fieldClass));
+                    field.set(bean, tester.fieldProxy(fieldClass, new FieldInvocationHandler(target, affectedMethods).setFieldName(fieldName), fieldClass));
                 }
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
-        return LegacyTester.createClassProxy(bean, tester);
+        return LegacyTester.classProxy(bean, tester);
     }
 
     private String[] extractAffectedMethods(Field field) {

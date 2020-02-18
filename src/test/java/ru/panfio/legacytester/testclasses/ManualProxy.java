@@ -30,8 +30,8 @@ public class ManualProxy {
     }
 
     public void setTester() {
-        this.messageBus = tester.createFieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "sendAll").setFieldName("messageBus"));
-        this.soundCloudDao = tester.createFieldProxy(SoundCloudDao.class, new FieldInvocationHandler(soundCloudDao).setFieldName("soundCloudDao"));
+        this.messageBus = tester.fieldProxy(MessageBus.class, new FieldInvocationHandler(messageBus, "sendAll").setFieldName("messageBus"));
+        this.soundCloudDao = tester.fieldProxy(SoundCloudDao.class, new FieldInvocationHandler(soundCloudDao).setFieldName("soundCloudDao"));
     }
 
     @Testee
@@ -81,11 +81,9 @@ public class ManualProxy {
         trackInfos.values().forEach(trackInfo -> {
             new LegacyTester(ManualProxy.class)
                     .qualifier("throwsException")
-                    .testSupplier(MockTestConstructor::new)
-                    .testHandler(test -> System.out.println(test
-                            .configuration(
-                                    new ConstructorConfiguration().assertionClass(Assertions.class))
-                            .construct()))
+                    .testConstructor(MockTestConstructor::new)
+                    .constructorConfig(() -> ConstructorConfiguration.builder().assertionClass(Assertions.class).build())
+                    .testHandler(test -> System.out.println(test.construct()))
                     .test(() -> throwsException(null, trackInfo), null, trackInfo);
         });
     }

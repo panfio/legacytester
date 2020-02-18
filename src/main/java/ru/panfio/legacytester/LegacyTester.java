@@ -3,20 +3,20 @@ package ru.panfio.legacytester;
 import lombok.SneakyThrows;
 import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
+import ru.panfio.legacytester.constructor.ConstructorConfiguration;
 import ru.panfio.legacytester.constructor.MockTestConstructor;
 import ru.panfio.legacytester.constructor.TestConstructor;
-import ru.panfio.legacytester.constructor.TestSupplier;
+import ru.panfio.legacytester.constructor.ConstructorSupplier;
 import ru.panfio.legacytester.spring.MethodInvocationInterceptor;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static ru.panfio.legacytester.util.ReflectionUtils.containAnnotation;
@@ -25,8 +25,9 @@ public class LegacyTester {
     private final Class<?> testClass;
     private String qualifier = "default";
     private Map<String, FieldInvocationHandler> handlers = new HashMap<>();
-    private TestSupplier<Class, List<MethodCapture>, TestConstructor> testSupplier;
+    private ConstructorSupplier<Class, ConstructorConfiguration, List<MethodCapture>, TestConstructor> testConstructorSupplier;
     private Consumer<TestConstructor> testHandler;
+    private Supplier<ConstructorConfiguration> constructorConfigSupplier;
 
     public LegacyTester(Class<?> testClass) {
         this.testClass = testClass;
@@ -37,8 +38,13 @@ public class LegacyTester {
         return this;
     }
 
-    public LegacyTester testSupplier(TestSupplier<Class, List<MethodCapture>, TestConstructor> supplier) {
-        this.testSupplier = supplier;
+    public LegacyTester constructorConfig(Supplier<ConstructorConfiguration> constructorConfig) {
+        this.constructorConfigSupplier = constructorConfig;
+        return this;
+    }
+
+    public LegacyTester testConstructor(ConstructorSupplier<Class, ConstructorConfiguration, List<MethodCapture>, TestConstructor> supplier) {
+        this.testConstructorSupplier = supplier;
         return this;
     }
 
@@ -114,30 +120,41 @@ public class LegacyTester {
             System.out.println("Please annotate testable method with @Testee");
             return;
         }
-        List<MethodCapture> capturedData = collectCapturedData();
-        capturedData.add(
-                MethodCapture.builder()
-                        .method(testMethod)
-                        .type(MethodCapture.Type.TEST)
-                        .arguments(params)
-                        .result(result)
-                        .exception(exception)
-                        .build());
+        List<MethodCapture> capturedData = MethodCapture.collectFrom(handlers);
+        capturedData.add(MethodCapture.builder()
+                .method(testMethod)
+                .type(MethodCapture.Type.TEST)
+                .arguments(params)
+                .result(result)
+                .exception(exception)
+                .build());
 
-        TestConstructor testConstructor = null;
-        if (testSupplier != null) {
-            testConstructor = testSupplier.get(testClass, capturedData);
-        }
-
+        ConstructorConfiguration constructorConfig = getConstructorConfiguration();
+        TestConstructor testConstructor = getTestConstructor(capturedData, constructorConfig);
         if (testHandler != null) {
             testHandler.accept(testConstructor);
             return;
         }
-
         // default
-        testConstructor = new MockTestConstructor(testClass, capturedData);
         String testText = testConstructor.construct();
         printGeneratedTest(testText);
+    }
+
+    private TestConstructor getTestConstructor(List<MethodCapture> capturedData,
+                                               ConstructorConfiguration constructorConfig) {
+        if (testConstructorSupplier != null) {
+            return testConstructorSupplier.get(testClass, constructorConfig, capturedData);
+        } else {
+            return new MockTestConstructor(testClass,constructorConfig, capturedData);
+        }
+    }
+
+    private ConstructorConfiguration getConstructorConfiguration() {
+        if (constructorConfigSupplier != null) {
+            return constructorConfigSupplier.get();
+        } else {
+            return ConstructorConfiguration.builder().build();
+        }
     }
 
     private Method getTestableMethod() {
@@ -155,19 +172,6 @@ public class LegacyTester {
 
     public void clearInvocations() {
         handlers.values().forEach(FieldInvocationHandler::clearCapturedInvocations);
-    }
-
-    private List<MethodCapture> collectCapturedData() {
-        List<MethodCapture> capturedData = new ArrayList<>();
-        for (Map.Entry<String, FieldInvocationHandler> entry : handlers.entrySet()) {
-            List<MethodCapture> data = entry.getValue()
-                    .getCapturedInvocations()
-                    .stream()
-                    .map(methodCapture -> methodCapture.setFieldName(entry.getKey()))
-                    .collect(Collectors.toList());
-            capturedData.addAll(data);
-        }
-        return capturedData;
     }
 
     private void printGeneratedTest(String test) {
@@ -209,7 +213,7 @@ public class LegacyTester {
      * @return
      */
     @SuppressWarnings("unchecked")
-    public <T> T createFieldProxy(Class<? extends T> target, InvocationHandler handler, Class<?>... otherInterfaces) {
+    public <T> T fieldProxy(Class<? extends T> target, InvocationHandler handler, Class<?>... otherInterfaces) {
         FieldInvocationHandler invocationHandler = (FieldInvocationHandler) handler;
         handlers.put(invocationHandler.getFieldName(), invocationHandler);
         Class<?>[] allInterfaces =
@@ -226,7 +230,7 @@ public class LegacyTester {
      * @param tester LegacyTester object
      * @return proxy instance
      */
-    public static Object createClassProxy(Object bean, LegacyTester tester) {
+    public static Object classProxy(Object bean, LegacyTester tester) {
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(bean.getClass());
         Callback saveCallback = new MethodInvocationInterceptor(bean, tester);
