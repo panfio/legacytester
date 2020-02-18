@@ -47,6 +47,10 @@ public class ConstructorConfiguration {
         return new ConstructorConfigurationBuilder();
     }
 
+    public static ConstructorConfiguration defaultConfig() {
+        return new ConstructorConfigurationBuilder().build();
+    }
+
     private String isVerboseType(String type) {
         return isVerbose ? type : unVerbose(type);
     }

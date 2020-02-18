@@ -153,7 +153,7 @@ public class LegacyTester {
         if (constructorConfigSupplier != null) {
             return constructorConfigSupplier.get();
         } else {
-            return ConstructorConfiguration.builder().build();
+            return ConstructorConfiguration.defaultConfig();
         }
     }
 
