@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static ru.panfio.legacytester.util.JsonUtils.toJson;
 import static ru.panfio.legacytester.util.ReflectionUtils.*;
@@ -143,12 +144,11 @@ public class Constructor {
     }
 
     private String generateParameterClasses(Method method) {
-        final List<Parameter> parameterTypes = getMethodParameters(method);
-        final String params = parameterTypes.stream()
+        return getMethodParameters(method)
+                .stream()
                 .map(conf::type)
                 .map(argumentType -> argumentType + ".class")
-                .reduce("", (acc, name) -> acc.concat(name + ","));
-        return "".equals(params) ? "" : params.substring(0, params.length() - 1);
+                .collect(Collectors.joining(", "));
     }
 
     protected String generateResultToString() {
@@ -186,17 +186,11 @@ public class Constructor {
     }
 
     protected static String repeatArguments(int count, String argumentName) {
-        final String params =
-                Collections.nCopies(count, argumentName)
-                        .stream()
-                        .reduce("", (acc, name) -> acc.concat(name + ","));
-        return "".equals(params) ? "" : params.substring(0, params.length() - 1);
+        return String.join(", ", Collections.nCopies(count, argumentName));
     }
 
     protected String generateArguments(Method testMethod) {
-        List<String> parameterNames = getParameterNames(testMethod);
-        final String params = parameterNames.stream().reduce("", (acc, name) -> acc.concat(name + ","));
-        return "".equals(params) ? "" : params.substring(0, params.length() - 1);
+        return String.join(", ", getParameterNames(testMethod));
     }
 
     public String escapeQuotes(String text) {

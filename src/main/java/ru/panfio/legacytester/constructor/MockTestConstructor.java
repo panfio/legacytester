@@ -81,7 +81,7 @@ public class MockTestConstructor implements TestConstructor {
 
     private String mockCreation(String typeName, String fieldName, String fieldVariable) {
         return conf.getBodySpace() + typeName + " " + fieldName + " = " + conf.getMockito() + ".mock(" + typeName + ".class);\n" +
-                conf.getBodySpace() + conf.type(Field.class)+ " " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
+                conf.getBodySpace() + conf.type(Field.class) + " " + fieldVariable + " = testClass.getClass().getDeclaredField(\"" + fieldName + "\");\n" +
                 conf.getBodySpace() + fieldVariable + ".setAccessible(true);\n" +
                 conf.getBodySpace() + fieldVariable + ".set(testClass, " + fieldName + ");\n";
     }
@@ -211,9 +211,8 @@ public class MockTestConstructor implements TestConstructor {
     }
 
     private String generateCaptorArguments(Collection<String> argumentNames, String methodName) {
-        final String params = argumentNames.stream()
+        return argumentNames.stream()
                 .map(argumentName -> methodName + argumentName + conf.getCaptorVariableSuffix() + ".capture()")
-                .reduce("", (acc, name) -> acc.concat(name + ","));
-        return "".equals(params) ? "" : params.substring(0, params.length() - 1);
+                .collect(Collectors.joining(", "));
     }
 }

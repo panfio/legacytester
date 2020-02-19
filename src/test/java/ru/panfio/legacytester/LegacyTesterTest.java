@@ -55,7 +55,7 @@ public class LegacyTesterTest {
                 "    @Test\n" +
                         "    public void processTest777() throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, java.lang.reflect.InvocationTargetException {\n" +
                         "        //Please create a test class manually if necessary\n" +
-                        "        ManualProxy testClass = new ManualProxy(null,null);\n" +
+                        "        ManualProxy testClass = new ManualProxy(null, null);\n" +
                         "\n" +
                         "        MessageBus messageBus = Mockito.mock(MessageBus.class);\n" +
                         "        Field messageBusField = testClass.getClass().getDeclaredField(\"messageBus\");\n" +
@@ -78,7 +78,7 @@ public class LegacyTesterTest {
                         "        //Then\n" +
                         "        final ArgumentCaptor<String> sendAllarg0Captor = ArgumentCaptor.forClass(String.class);\n" +
                         "        final ArgumentCaptor<ArrayList> sendAllarg1Captor = ArgumentCaptor.forClass(ArrayList.class);\n" +
-                        "        Mockito.verify(messageBus, Mockito.times(1)).sendAll(sendAllarg0Captor.capture(),sendAllarg1Captor.capture());\n" +
+                        "        Mockito.verify(messageBus, Mockito.times(1)).sendAll(sendAllarg0Captor.capture(), sendAllarg1Captor.capture());\n" +
                         "        List<String> sendAllarg0Result = sendAllarg0Captor.getAllValues();\n" +
                         "        List<ArrayList> sendAllarg1Result = sendAllarg1Captor.getAllValues();\n" +
                         "        String sendAllarg0ExpectedResult = \"[music]\";\n" +
